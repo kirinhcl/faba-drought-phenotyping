@@ -1,0 +1,78 @@
+# =============================================================================
+# Distillation configuration for Faba Bean Drought Phenotyping Framework
+# Inherits from default.yaml and adds distillation-specific parameters
+# =============================================================================
+
+defaults:
+  - default
+
+# Distillation-specific parameters
+distillation:
+  teacher_checkpoint: "results/full_model/fold_{fold}/best_model_state.pt"
+  alpha_start: 0.7        # Initial weight for alignment loss (high early on)
+  alpha_end: 0.3          # Final weight for alignment loss (low later)
+  alpha_schedule: "linear"  # linear | cosine | exponential
+  student_model: "rgb_only"
+
+# Override model settings for student
+model:
+  image_encoder: "facebook/dinov2-base"
+  freeze_encoder: true
+  encoder_output_dim: 768
+  view_aggregation: "attention"
+  
+  temporal:
+    num_layers: 2
+    num_heads: 4
+    dim: 256
+    ff_dim: 1024
+    dropout: 0.1
+  
+  # Student only uses RGB images (no fusion module)
+  fusion:
+    image_dim: 768
+    fluor_dim: 93
+    env_dim: 5
+    water_dim: 5
+    hidden_dim: 128
+    fused_dim: 256
+  
+  heads:
+    dag_regression: true
+    dag_classification: true
+    biomass_regression: true
+    trajectory: true
+
+# Training settings (same as teacher)
+training:
+  batch_size: 16
+  lr: 1.0e-4
+  weight_decay: 0.01
+  max_epochs: 100
+  patience: 15
+  scheduler: "cosine"
+  warmup_epochs: 5
+  gradient_clip: 1.0
+  
+  loss_weights:
+    dag_reg: 1.0
+    dag_cls: 0.5
+    biomass: 1.0
+    trajectory: 0.5
+  
+  cv:
+    strategy: "logo"
+    n_folds: 44
+    stratify_by: "drought_category"
+    val_per_fold: 3
+    seed: 42  # IMPORTANT: Same seed as teacher for same splits
+
+# Logging
+logging:
+  wandb:
+    project: "faba-drought-phenotyping-distill"
+    entity: null
+    mode: "online"
+  save_dir: "results/distillation/"
+  checkpoint_dir: "results/distillation/checkpoints/"
+  log_every_n_steps: 10
