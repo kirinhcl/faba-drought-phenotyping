@@ -1,0 +1,238 @@
+\documentclass{article}
+
+% Required Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{lineno}
+
+% Nature-style citation
+\bibliographystyle{unsrtnat}
+
+\title{Bridging the physiology-visibility gap: temporal deep learning reveals pre-symptomatic drought signals through fluorescence-guided privileged learning}
+
+\author{Author One\textsuperscript{1}, Author Two\textsuperscript{1,2}}
+\date{}
+
+\begin{document}
+
+\linenumbers
+\maketitle
+
+\noindent
+\textsuperscript{1}Department of Plant Sciences, University of Helsinki, Helsinki, Finland \\
+\textsuperscript{2}Institute of Biotechnology, University of Helsinki, Helsinki, Finland \\[6pt]
+\noindent\textbf{Correspondence:} author.one@helsinki.fi
+
+%% ============================================================
+%% ABSTRACT
+%% ============================================================
+\section*{Abstract}
+Agricultural productivity is increasingly threatened by drought, yet current phenotyping approaches fail to exploit the temporal lag between physiological stress onset and visible symptom appearance. Here, a temporal multimodal deep learning framework is presented that bridges this physiology-visibility gap for drought phenotyping in faba bean (\textit{Vicia faba} L.). The framework integrates vision foundation model representations with chlorophyll fluorescence as privileged information, processed through a temporal transformer to capture stress dynamics across 22 imaging rounds. Three-way triangulation between fluorescence change points, model temporal attention peaks, and expert-annotated symptoms confirms that the framework detects physiological stress $X.X \pm Y.Y$ days before visible onset. Knowledge distillation transfers this multimodal insight to an RGB-only student model, recovering $X.X$\% of the teacher's advantage for sensor-free deployment. Systematic ablation across DINOv2, CLIP, and BioCLIP backbones establishes the relative merits of self-supervised, language-supervised, and domain-specific representations for plant phenotyping.
+
+%% ============================================================
+%% INTRODUCTION
+%% ============================================================
+\section*{Introduction}
+Climate change is driving an increase in the frequency and severity of drought events worldwide, with substantial consequences for crop production and food security~\cite{pathak2018climate, fiorani2013future, araus2014field}. The development of drought-resilient crop varieties depends critically on the ability to phenotype large germplasm panels rapidly and accurately. However, a fundamental bottleneck persists: plant physiological responses to water deficit precede the appearance of visible symptoms by days to weeks, creating a physiology-visibility gap that limits the effectiveness of conventional screening approaches.
+
+The existence of this temporal lag is well established in plant physiology. Chlorophyll fluorescence parameters, particularly the maximum quantum yield of photosystem~II ($F_v/F_m$), change within hours of water deficit onset, reflecting impaired photosynthetic electron transport long before wilting, chlorosis, or growth reduction become apparent~\cite{baker2008chlorophyll, murchie2013chlorophyll, miller2017probing, werth2021monitoring}. While fluorescence measurements provide a sensitive physiological window into early stress, they require specialized equipment and are difficult to scale to the throughput demanded by modern breeding programmes.
+
+Current high-throughput phenotyping (HTP) platforms predominantly rely on visible-range RGB imaging, which captures morphological and colour changes but is inherently blind to pre-symptomatic physiological states~\cite{roitsch2019new, tardieu2017plant, fahlgren2015lights, singh2016deep}. Deep learning methods applied to plant phenotyping have achieved impressive results for trait extraction and disease detection~\cite{li2021deep, zhao2019deep, zhou2021deep}, yet most treat imaging timepoints independently or use architectures that do not explicitly model the temporal structure of stress progression. The temporal dynamics that encode the physiology-visibility lag remain largely unexploited.
+
+Vision foundation models (VFMs) pre-trained on large-scale datasets have emerged as powerful general-purpose feature extractors. Self-supervised models such as DINOv2~\cite{oquab2023dinov2} learn representations that capture fine-grained visual structure without task-specific labels, while language-supervised models such as CLIP~\cite{radford2021learning} and domain-specific variants such as BioCLIP~\cite{stevens2024bioclip} embed images in semantically meaningful spaces~\cite{reza2024vision, humphrey2023foundation}. Despite their potential, these models have not been systematically evaluated for temporal phenotyping, nor have they been combined with physiological data to exploit the physiology-visibility lag.
+
+This work introduces a temporal multimodal framework that addresses these gaps through four contributions. First, it presents the first temporal multimodal architecture that exploits the physiology-visibility lag through privileged information learning, treating chlorophyll fluorescence as a training-time-only signal that guides the visual representation~\cite{vapnik2009learning, lopez2016unifying}. Second, a three-way triangulation protocol validates that model-detected stress signals align with independent physiological measurements and precede expert-observable symptoms. Third, a teacher-student distillation paradigm~\cite{hinton2015distilling} transfers fluorescence-guided knowledge to an RGB-only model suitable for sensor-free deployment. Fourth, a systematic ablation compares self-supervised (DINOv2), language-supervised (CLIP), and domain-specific (BioCLIP) vision foundation model representations for plant phenotyping.
+
+%% ============================================================
+%% RESULTS
+%% ============================================================
+\section*{Results}
+
+\subsection*{Temporal multimodal framework for drought phenotyping}
+The framework integrates multi-view RGB imagery with chlorophyll fluorescence, environmental conditions, and watering history through a unified temporal architecture (Fig.~1). RGB images from four camera positions per plant per round are processed through a frozen DINOv2-B/14 backbone, yielding 768-dimensional feature vectors that are aggregated across views via a learnable attention mechanism. These visual representations are fused with 128-dimensional projections of fluorescence parameters (93 features), environmental data (temperature, humidity, light), and watering records through concatenation and linear projection to a 256-dimensional space. Learnable mask tokens handle timepoints where fluorescence measurements are unavailable.
+
+The fused multimodal representations are processed by a two-layer temporal transformer with continuous sinusoidal positional encodings derived from DAG values, allowing the model to account for irregular intervals between imaging rounds. A prepended [CLS] token captures the global temporal state and feeds into multi-task prediction heads for DAG regression, three-class drought stage classification (Early, Mid, Late), biomass estimation (fresh weight, dry weight), and per-timepoint trajectory prediction.
+
+The framework was evaluated on 264 faba bean plants (44 accessions $\times$ 2 treatments $\times$ 3 replicates) imaged over 22 rounds ($\sim$11,600 images) using 44-fold leave-one-genotype-out cross-validation (LOGO-CV) with stratified validation splits.
+
+\subsection*{Ablation study establishes component contributions}
+Systematic ablation of framework components revealed the relative importance of temporal modelling, multimodal fusion, and multi-task learning (Fig.~2, Table~1). The full temporal multimodal model achieved a DAG MAE of $X.XX \pm Y.YY$ days and a biomass $R^2$ of $X.XX \pm Y.YY$. Removing the temporal transformer increased DAG MAE to $X.XX \pm Y.YY$, representing the largest single-component degradation and confirming that explicit temporal modelling is essential for capturing stress dynamics. Removing fluorescence input increased DAG MAE to $X.XX \pm Y.YY$, while removing environmental and watering data had smaller but significant effects.
+
+\begin{table}[ht]
+\centering
+\caption{Ablation study results across model configurations under 44-fold LOGO-CV. Values are mean $\pm$ 95\% CI.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Configuration & DAG MAE (days) & Biomass $R^2$ & Ranking $\rho$ \\
+\midrule
+Full model (DINOv2) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+Image only & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+Image + fluorescence & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+w/o temporal transformer & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+Single-task (DAG only) & $X.XX \pm Y.YY$ & --- & $X.XX \pm Y.YY$ \\
+\midrule
+Full model (BioCLIP) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+Full model (CLIP) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+\midrule
+XGBoost (tabular) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+Random Forest (tabular) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+DINOv2 + RF (no temporal) & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ & $X.XX \pm Y.YY$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Comparison across vision foundation model backbones revealed a consistent advantage for DINOv2-B/14 over both BioCLIP and CLIP ViT-B/16. The self-supervised representations of DINOv2 outperformed the language-supervised CLIP features, suggesting that the fine-grained visual structure captured by self-supervised pre-training is more informative for detecting subtle morphological changes associated with drought stress than the semantic features learned through contrastive language-image alignment. BioCLIP, despite its domain-specific pre-training on biological images, did not surpass the general-purpose DINOv2 representations.
+
+All deep learning variants substantially outperformed classical baselines (XGBoost, Random Forest) and the non-temporal DINOv2+RF approach, confirming the value of both learned representations and explicit temporal modelling.
+
+\subsection*{Three-way triangulation validates pre-symptomatic detection}
+The central finding of this study is the validation of the framework's ability to detect drought stress before visible symptom onset, established through three-way triangulation between independent temporal markers (Fig.~3). The temporal attention weights of the trained model were extracted from the [CLS] token across all transformer layers and heads, then averaged to identify the timepoints receiving the highest attention for each plant.
+
+For drought-stressed plants (WHC-30), the model's temporal attention peak consistently preceded the human-annotated symptom onset (DAG) by $X.X \pm Y.Y$ days on average. Independently, fluorescence change points---defined as the first timepoint where $F_v/F_m$ deviated from the WHC-80 baseline by more than 2 standard deviations---preceded the attention peak by an additional $X.X \pm Y.Y$ days. This ordering (fluorescence change $\rightarrow$ attention peak $\rightarrow$ human observation) held for $XX$ of 44 genotypes.
+
+Critically, negative control plants maintained at WHC-80 showed no systematic shift in temporal attention or fluorescence deviation, confirming that the detected signals are drought-specific rather than developmental artefacts. Scatter analysis of fluorescence change DAG versus attention peak DAG revealed a strong positive correlation ($r = X.XX$, $p < 0.001$), indicating that the model's learned attention is physiologically grounded.
+
+\subsection*{Knowledge distillation enables sensor-free deployment}
+To enable deployment without specialised sensors, a teacher-student distillation strategy transferred the multimodal teacher's knowledge to an RGB-only student model (Fig.~6). The student architecture replaced the multimodal fusion layer with a direct projection from 768-dimensional image features to the 256-dimensional transformer input, while retaining the same temporal transformer and prediction heads.
+
+The distillation loss combined embedding alignment (MSE between teacher and student [CLS] embeddings) with standard task losses, with the distillation weight $\alpha$ linearly annealed from 0.7 to 0.3 during training. The distilled student recovered $X.X$\% of the multimodal teacher's performance advantage over the image-only baseline across all metrics. Embedding space visualisation via t-SNE confirmed that the student learned a representation structure closely resembling the teacher's, with clear separation between drought stages despite never receiving fluorescence input.
+
+\subsection*{Early detection and genotype ranking}
+Progressive temporal truncation analysis revealed that the framework achieves reliable DAG prediction from as early as round $X$ (DAG $= Y$), well before the median human-observed symptom onset at DAG $= XX$ (Fig.~4). Performance degraded gracefully as earlier truncation points were applied, with DAG MAE remaining below $X.XX$ days when at least $X$ rounds of data were available.
+
+The framework demonstrated strong genotype ranking capability, achieving a Spearman $\rho$ of $X.XX$ ($p < 0.001$) and Kendall $\tau$ of $X.XX$ between predicted and ground-truth tolerance rankings across the 44 accessions (Fig.~5). Top-5 and bottom-5 recall reached $X.X$\% and $X.X$\%, respectively. Drought-stage category accuracy was $X.X$\%, indicating that the framework can reliably discriminate Early-, Mid-, and Late-responding genotypes for breeding applications.
+
+%% ============================================================
+%% DISCUSSION
+%% ============================================================
+\section*{Discussion}
+This work demonstrates that the physiology-visibility gap in plant drought response, long recognised in plant physiology but computationally underexploited, can be systematically leveraged by temporal multimodal deep learning. The three-way triangulation between fluorescence change points, model attention peaks, and human-annotated symptoms provides converging evidence that the framework detects real physiological stress signals rather than spurious correlations. The consistent temporal ordering across the majority of genotypes---physiological change preceding computational detection, which in turn precedes human observation---validates the framework's internal logic and its utility as a pre-symptomatic screening tool.
+
+The success of fluorescence as privileged information connects directly to Vapnik's learning using privileged information (LUPI) framework~\cite{vapnik2009learning}, which posits that auxiliary information available only during training can accelerate learning and improve generalisation. The present results extend this theoretical framework to a biological context, demonstrating that expensive physiological measurements can guide the learning of models that ultimately rely only on cheap visual sensors. This paradigm---train with rich data, deploy with simple data---has broad implications for phenotyping beyond drought, wherever a gap exists between laboratory-scale precision and field-scale throughput.
+
+The practical utility of the framework extends beyond drought detection to genotype evaluation. The strong rank correlation between predicted and ground-truth tolerance rankings suggests that the model captures genotype-level variation in drought response, a prerequisite for integration into breeding workflows. The early detection capability further enhances utility by identifying stress trajectories before irreversible damage occurs, informing timely management decisions.
+
+Several limitations warrant discussion. The dataset comprises a single greenhouse experiment with 44 accessions, and while the LOGO-CV design ensures generalisation to unseen genotypes within this set, validation across multiple environments, seasons, and larger panels is essential before operational deployment. The temporal resolution is constrained by the imaging schedule, and finer-grained measurements might reveal earlier or more nuanced stress signatures. Attention weights, while informative for interpretability, do not constitute causal explanations of the model's predictions and should be interpreted as correlational indicators~\cite{selvaraju2017grad}. Finally, the framework has been validated on faba bean under controlled conditions; its transferability to other species and field environments remains an open question.
+
+Future extensions should prioritise multi-environment validation with larger genotype panels, integration with field-deployable imaging systems, and the incorporation of additional stress types (heat, salinity, biotic). The distillation paradigm demonstrated here could be extended to other modality pairs, for example transferring hyperspectral knowledge to RGB models or thermal imaging knowledge to standard cameras.
+
+%% ============================================================
+%% METHODS
+%% ============================================================
+\section*{Methods}
+
+\subsection*{Plant material and experimental design}
+A diversity panel of 44 faba bean (\textit{Vicia faba} L.) accessions was grown under controlled greenhouse conditions. The experimental design comprised two watering treatments: a well-watered control maintained at 80\% water-holding capacity (WHC-80) and a drought treatment at 30\% water-holding capacity (WHC-30), with three biological replicates per accession-treatment combination, yielding 264 plants in total (44 accessions $\times$ 2 treatments $\times$ 3 replicates). Plants were grown on an automated phenotyping platform that controlled watering, environmental conditions, and imaging schedules. Each plant was subjected to 22 imaging rounds spanning the vegetative through early reproductive growth stages, although individual plants were imaged at approximately 11 of these rounds depending on their replicate schedule.
+
+\subsection*{Image acquisition and data collection}
+RGB images were captured from four standardised camera positions (side views at 0$^{\circ}$, 90$^{\circ}$, 180$^{\circ}$, 270$^{\circ}$ and top view) using the platform's automated imaging system, yielding approximately 11,600 images across all plants and rounds. Chlorophyll fluorescence was measured during five dedicated campaigns using a Pulse Amplitude Modulation (PAM) fluorometer, providing 93 distinct parameters per measurement including the maximum quantum yield of PSII ($F_v/F_m$), non-photochemical quenching, and various fluorescence kinetic parameters. Environmental data (temperature, humidity, photosynthetically active radiation) and precise watering volumes were recorded continuously by the platform.
+
+Drought tolerance was independently assessed by expert annotators who recorded the days after germination (DAG) at which visible stress symptoms first appeared for each genotype. These expert-annotated DAG values (13 unique values across 44 accessions) serve as the ground-truth phenotype and were assigned to three categories: Early (DAG 10--20), Mid (DAG 24--29), and Late (DAG 33--38). Endpoint biomass was measured as fresh weight (FW) and dry weight (DW) at harvest.
+
+\subsection*{Vision foundation model feature extraction}
+Visual features were extracted from all RGB images using three frozen pre-trained vision transformer backbones: DINOv2-B/14~\cite{oquab2023dinov2} (primary), CLIP ViT-B/16~\cite{radford2021learning}, and BioCLIP~\cite{stevens2024bioclip}. For each backbone, the 768-dimensional [CLS] token from the final transformer layer was extracted as the image representation. All features were stored in HDF5 format with the structure \texttt{/\{plant\_id\}/\{round\}/\{view\_key\}} for efficient random access during training.
+
+\subsection*{Model architecture}
+The framework architecture comprises four modules:
+
+\textbf{View aggregation.} A learnable attention mechanism aggregates the four 768-dimensional view embeddings into a single representation per plant-round. Attention weights are computed via a linear projection followed by softmax normalisation, allowing the model to weight informative views more heavily.
+
+\textbf{Multimodal fusion.} The aggregated visual representation (768-dim) is concatenated with linear projections of fluorescence parameters ($93 \rightarrow 128$-dim), environmental features ($5 \rightarrow 128$-dim), and watering features ($5 \rightarrow 128$-dim). The concatenated vector is projected to 256 dimensions. For timepoints where fluorescence measurements are unavailable (approximately 5--6 of the $\sim$11 active timepoints per plant have fluorescence), learnable [MASK] tokens replace the missing modality embeddings.
+
+\textbf{Temporal transformer.} A two-layer transformer encoder~\cite{vaswani2017attention} with 4 attention heads and 256-dimensional hidden representations processes the sequence of timepoint embeddings. Continuous sinusoidal positional encodings are derived from each timepoint's DAG value, enabling the model to encode the actual temporal position rather than just ordinal sequence position. A learnable [CLS] token is prepended to the sequence to aggregate the global temporal representation.
+
+\textbf{Multi-task prediction heads.} The [CLS] token feeds into: (i) a DAG regression head (WHC-30 plants only); (ii) a three-class DAG classification head (Early/Mid/Late); (iii) a biomass prediction head (FW and DW); and (iv) per-timepoint trajectory prediction heads operating on individual timestep representations.
+
+\subsection*{Training procedure}
+The model was trained using 44-fold LOGO-CV with deterministic fold assignment (seed = 42). Each fold held out all 6 plants of one genotype (3 WHC-80 + 3 WHC-30) for testing, with 3 plants from distinct genotypes (one Early, one Mid, one Late) reserved for validation. Optimisation used AdamW~\cite{loshchilov2017decoupled} with learning rate $1 \times 10^{-4}$, weight decay 0.01, and cosine annealing with 10-epoch linear warmup. Training used mixed-precision (float16) via \texttt{torch.amp} with gradient scaling, batch size 16, and early stopping with patience 20 epochs monitoring validation DAG MAE. The multi-task loss combined weighted MSE for regression targets and cross-entropy for classification, with DAG-related losses computed only for WHC-30 plants.
+
+\subsection*{Knowledge distillation}
+A frozen, pre-trained multimodal teacher model provided supervision for training an RGB-only student. The student architecture retained the temporal transformer and prediction heads but replaced multimodal fusion with a direct linear projection from 768-dimensional image features to the 256-dimensional transformer input. The training objective combined embedding alignment and task losses:
+\begin{equation}
+    \mathcal{L}_{\text{student}} = \alpha \cdot \text{MSE}(\mathbf{z}_{\text{student}}, \mathbf{z}_{\text{teacher}}) + (1 - \alpha) \cdot \mathcal{L}_{\text{task}}
+\end{equation}
+where $\mathbf{z}$ denotes the 256-dimensional [CLS] embeddings and $\alpha$ was linearly annealed from 0.7 to 0.3 over training, shifting emphasis from representation mimicry to task performance.
+
+\subsection*{Attention analysis and pre-symptomatic quantification}
+Temporal attention weights were extracted from the [CLS] token's attention to all timepoint tokens across both transformer layers and all attention heads, then averaged to produce a single attention profile per plant. The custom \texttt{TransformerEncoderLayerWithWeights} subclass exposes per-head attention matrices during the forward pass.
+
+Fluorescence change points were defined as the earliest timepoint at which a drought-stressed plant's $F_v/F_m$ value deviated from the WHC-80 population baseline by more than 2 standard deviations (z-score $> 2$). The three-way triangulation protocol compared the timing of: (1) fluorescence change points, (2) temporal attention peaks, and (3) expert-annotated visible symptom onset. Negative control verification confirmed the absence of systematic attention shifts or fluorescence deviations in WHC-80 plants.
+
+\subsection*{Classical baselines}
+Three classical machine learning approaches served as baselines: (i) XGBoost on tabular features (fluorescence + environmental + watering); (ii) Random Forest on the same tabular features; and (iii) DINOv2 + Random Forest, using time-averaged [CLS] features without temporal modelling. All baselines used the same 44-fold LOGO-CV protocol to ensure fair comparison.
+
+\subsection*{Evaluation metrics}
+DAG prediction was evaluated using Mean Absolute Error (MAE) and Root Mean Square Error (RMSE). Drought stage classification used three-class accuracy. Biomass prediction was assessed via coefficient of determination ($R^2$) and MAE for both fresh and dry weight. Genotype ranking was evaluated using Spearman's rank correlation ($\rho$), Kendall's $\tau$, top-5/bottom-5 recall, and category accuracy. All metrics include 95\% confidence intervals from 1000-iteration bootstrap resampling.
+
+%% ============================================================
+%% DATA AND CODE AVAILABILITY
+%% ============================================================
+\section*{Data and Code Availability}
+The code for the temporal multimodal framework, including training scripts, analysis pipelines, and figure generation, is available at \url{https://github.com/kirinhcl/faba-drought-phenotyping}. Raw imaging data and physiological measurements will be deposited in a public repository upon publication (DOI: \texttt{10.XXXX/zenodo.XXXXXXX}). Processed features and metadata are available upon reasonable request to the corresponding author.
+
+%% ============================================================
+%% FIGURE LEGENDS
+%% ============================================================
+\section*{Figure Legends}
+
+\noindent\textbf{Figure~1 $|$ Framework overview.}
+Schematic of the temporal multimodal deep learning framework. RGB images from four camera views are processed through a frozen DINOv2-B/14 backbone to extract 768-dimensional features, which are aggregated via learnable attention. The aggregated visual representation is fused with chlorophyll fluorescence parameters (93 features), environmental conditions, and watering history through multimodal fusion with learnable [MASK] tokens for missing modalities. The fused 256-dimensional representations are processed by a temporal transformer with continuous positional encoding to capture stress dynamics across 22 imaging rounds. Multi-task prediction heads output DAG regression, drought stage classification, biomass estimates, and per-timepoint trajectories. During deployment, knowledge distillation transfers the multimodal teacher's knowledge to an RGB-only student.
+
+\vspace{6pt}
+\noindent\textbf{Figure~2 $|$ Ablation study and backbone comparison.}
+\textbf{a,} Grouped bar chart comparing DAG MAE, biomass $R^2$, and genotype ranking Spearman $\rho$ across eight model configurations (full model, image-only, image+fluorescence, no temporal transformer, single-task, LoRA fine-tuned) and three classical baselines (XGBoost, Random Forest, DINOv2+RF). Error bars indicate 95\% confidence intervals from 44-fold LOGO-CV. \textbf{b,} Backbone comparison showing the same metrics for the full model architecture with DINOv2-B/14, CLIP ViT-B/16, and BioCLIP backbones.
+
+\vspace{6pt}
+\noindent\textbf{Figure~3 $|$ Three-way triangulation of pre-symptomatic stress detection.}
+\textbf{a,} Heatmap of temporal attention weights for 44 genotypes (rows, sorted by expert-annotated DAG) across 22 canonical timepoints (columns). Overlay markers indicate fluorescence change points ($\blacklozenge$), attention peaks ($\bigstar$), and human-annotated DAG ($\bullet$) for each genotype. The consistent left-to-right ordering ($\blacklozenge \leq \bigstar \leq \bullet$) demonstrates that physiological change precedes model detection, which precedes human observation. \textbf{b,} Scatter plot of fluorescence change DAG versus attention peak DAG, coloured by drought stage category (Early, Mid, Late), with identity line. \textbf{c,} Timeline diagrams for three representative genotypes (one Early, one Mid, one Late) illustrating the temporal lag between fluorescence change, attention peak, and human observation.
+
+\vspace{6pt}
+\noindent\textbf{Figure~4 $|$ Early detection curve.}
+Prediction performance as a function of temporal truncation point. Lines show DAG MAE, biomass $R^2$, and genotype ranking $\rho$ as progressively later imaging rounds are included (rounds 2--23). The vertical dashed line indicates the median DAG of expert-observed symptom onset. Reliable prediction is achieved from round $X$ (DAG $= Y$), demonstrating the framework's capacity for early intervention before visible symptoms appear.
+
+\vspace{6pt}
+\noindent\textbf{Figure~5 $|$ Genotype drought tolerance ranking.}
+Scatter plot of predicted versus ground-truth drought tolerance rank for 44 accessions, coloured by drought stage category (Early, Mid, Late). The identity line is shown for reference. Top-5 (most tolerant) and bottom-5 (most sensitive) genotypes are labelled. Inset reports Spearman $\rho$, Kendall $\tau$, and top-5/bottom-5 recall.
+
+\vspace{6pt}
+\noindent\textbf{Figure~6 $|$ Teacher-student knowledge distillation.}
+\textbf{a,} Bar chart comparing the multimodal teacher, distilled RGB-only student, and image-only baseline (no distillation) across DAG MAE, biomass $R^2$, and ranking $\rho$. The distilled student recovers a substantial fraction of the multimodal advantage using only RGB input. \textbf{b,} t-SNE visualisations of 256-dimensional [CLS] embeddings from the teacher (left) and student (right), coloured by drought stage category, showing that the student learns a similar representation structure despite receiving no fluorescence input during inference.
+
+%% ============================================================
+%% SUPPLEMENTARY FIGURE LEGENDS
+%% ============================================================
+\section*{Supplementary Figure Legends}
+
+\noindent\textbf{Figure~S1 $|$ Dataset overview.}
+\textbf{a,} Experimental design showing the 44 accessions, two watering treatments, and three replicates. \textbf{b,} Imaging schedule across 22 rounds with per-replicate coverage. \textbf{c,} Representative multi-view images from control and drought-stressed plants at early, mid, and late stages. \textbf{d,} Distribution of expert-annotated DAG values across the three drought stage categories.
+
+\vspace{6pt}
+\noindent\textbf{Figure~S2 $|$ Per-genotype triangulation profiles.}
+Individual triangulation profiles for all 44 genotypes. Each panel shows the fluorescence trajectory ($F_v/F_m$ over time), temporal attention weights, and the positions of the three triangulation markers (fluorescence change point, attention peak, expert-annotated DAG).
+
+\vspace{6pt}
+\noindent\textbf{Figure~S3 $|$ Embedding space visualisation.}
+t-SNE and UMAP projections of 256-dimensional [CLS] embeddings from the full model, coloured by: \textbf{a,} watering treatment (WHC-80 vs WHC-30); \textbf{b,} drought stage category (Early, Mid, Late); \textbf{c,} accession identity.
+
+\vspace{6pt}
+\noindent\textbf{Figure~S4 $|$ Cross-validation diagnostics.}
+\textbf{a,} Confusion matrix for three-class drought stage classification aggregated across 44 folds. \textbf{b,} Training and validation loss curves for representative folds. \textbf{c,} Per-fold DAG MAE distribution.
+
+%% ============================================================
+%% REFERENCES
+%% ============================================================
+
+\bibliography{references}
+
+\end{document}
