@@ -1,0 +1,28 @@
+# =============================================================================
+# Overfit test configuration — train on 10 plants, verify near-zero loss
+# Used as a sanity check before full training runs.
+# Usage: load_config('configs/overfit_test.yaml', base_path='configs/default.yaml')
+# =============================================================================
+
+training:
+  batch_size: 4
+  lr: 1.0e-3
+  max_epochs: 200
+  patience: 200              # never early stop
+  warmup_epochs: 0
+  weight_decay: 0.0
+
+  cv:
+    strategy: "none"         # no CV, just overfit
+    n_folds: 1
+
+data:
+  overfit_n: 10              # use only 10 plants
+
+logging:
+  wandb:
+    mode: "disabled"
+  save_dir: "results/overfit_test/"
+  checkpoint_dir: "results/overfit_test/checkpoints/"
+
+seed: 42

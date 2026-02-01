@@ -1,0 +1,101 @@
+# =============================================================================
+# Default configuration for Faba Bean Drought Phenotyping Framework
+# =============================================================================
+
+model:
+  image_encoder: "facebook/dinov2-base"  # HuggingFace model ID
+  # Alternatives: "openai/clip-vit-base-patch16", "imageomics/bioclip"
+  freeze_encoder: true
+  encoder_output_dim: 768  # All three ViT-B variants output 768-dim
+
+  view_aggregation: "attention"  # attention | mean | concat
+
+  temporal:
+    num_layers: 2
+    num_heads: 4
+    dim: 256
+    ff_dim: 1024
+    dropout: 0.1
+
+  fusion:
+    image_dim: 768       # DINOv2-B output dim
+    fluor_dim: 93        # ~93-96 fluorescence params; exact count at load time
+    env_dim: 5           # li1_Buffer_uE, t1_Buffer_C, rh1_Buffer_%, t2_Tunnel_C, rh2_Tunnel_%
+    water_dim: 5         # Water Added, WHC.Bf, WHC.Af, Water Loss, Water Loss per Hours
+    hidden_dim: 128
+    fused_dim: 256
+
+  heads:
+    dag_regression: true
+    dag_classification: true   # 3-class: Early/Mid/Late
+    biomass_regression: true   # FW + DW
+    trajectory: true
+
+training:
+  batch_size: 16
+  lr: 1.0e-4
+  weight_decay: 0.01
+  max_epochs: 100
+  patience: 15
+  scheduler: "cosine"          # cosine | step | plateau
+  warmup_epochs: 5
+  gradient_clip: 1.0
+
+  loss_weights:
+    dag_reg: 1.0
+    dag_cls: 0.5
+    biomass: 1.0
+    trajectory: 0.5
+
+  cv:
+    strategy: "logo"           # leave-genotype-out
+    n_folds: 44
+    stratify_by: "drought_category"  # Early/Mid/Late
+    val_per_fold: 3            # 1 Early + 1 Mid + 1 Late genotype for validation
+    seed: 42
+
+data:
+  image_size: 224
+  num_timepoints: 22           # canonical T=22 (rounds 2-23)
+  num_views: 4                 # 3 side + 1 top
+  feature_dir: "features/"
+  metadata_dir: "data/"
+  plant_metadata: "data/plant_metadata.csv"
+  timepoint_metadata: "data/timepoint_metadata.csv"
+  normalize: true
+
+  # Raw data paths
+  raw:
+    img_side: "data/img/side_view/"
+    img_top: "data/img/top_view/"
+    obs: "data/00-Misc/FabaDr_Obs.xlsx"
+    date_index: "data/00-Misc/DateIndex.xlsx"
+    endpoint_fw_dw: "data/00-Misc/EndPoint_Raw_FW&DW.xlsx"
+    drought_impact: "data/SinglePoint Datasets/Drought_Impact(DAG).xlsx"
+    fluorescence: "data/TimeCourse Datasets/FCQ_FabaDr_Auto.xlsx"
+    fluorescence_reshaped: "data/TimeCourse Datasets/FCQ_FabaDr_Auto_Reshape.xlsx"
+    env_data: "data/TimeCourse Datasets/EnvData_FabaDr.xlsx"
+    watering: "data/TimeCourse Datasets/SC_Watering_24_FabaDr_Auto.xlsx"
+    digital_biomass: "data/TimeCourse Datasets/DigitalBiomass_FabaDr_Auto.xlsx"
+    digital_biomass_norm: "data/TimeCourse Datasets/DigitalBiomass_Norm_FabaDr_Auto.xlsx"
+    plant_height: "data/TimeCourse Datasets/PlantHeight_Norm_FabaDr_Auto.xlsx"
+    veg_index_rgb2: "data/TimeCourse Datasets/VegIndex_FabaDr_RGB2.xlsx"
+    veg_index_rgb: "data/TimeCourse Datasets/RGB-Vegetative_Indices.xlsx"
+    side_morpho: "data/TimeCourse Datasets/RGB1_SideView_FabaDr_Manual_Morpho.xlsx"
+    top_morpho: "data/TimeCourse Datasets/RGB2_TopView_FabaDr_Manual_Morpho.xlsx"
+    endpoint_corr: "data/EndPoint Datasets/EndPoint_CorrelationData-WithoutOutliers.xlsx"
+    endpoint_wue: "data/EndPoint Datasets/DigitalWUE_FabaDr_38DAG.xlsx"
+    endpoint_bio_wue: "data/EndPoint Datasets/BiologicalWUE_FW_DW_FabaDr_Auto.xlsx"
+
+logging:
+  wandb:
+    project: "faba-drought-phenotyping"
+    entity: null               # set via env or override
+    mode: "online"             # online | offline | disabled
+  save_dir: "results/"
+  checkpoint_dir: "results/checkpoints/"
+  log_every_n_steps: 10
+
+seed: 42
+device: "cuda"                 # cuda | cpu | auto
+num_workers: 4
