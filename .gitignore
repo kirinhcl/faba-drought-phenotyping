@@ -1,0 +1,53 @@
+# Data (5.1GB images + Excel — too large for git)
+data/img/
+data/TimeCourse Datasets/
+data/SinglePoint Datasets/
+data/EndPoint Datasets/
+data/Avg_and_Ranks/
+data/00-Misc/
+*.xlsx
+*.docx
+*.pptx
+
+# Keep generated metadata CSVs (small, derived)
+!data/plant_metadata.csv
+!data/timepoint_metadata.csv
+!data/DATA_DESCRIPTION.md
+
+# Features (HDF5, will be huge)
+features/*.h5
+
+# Results & checkpoints
+results/
+!results/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+*.so
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Wandb
+wandb/
+
+# Sisyphus working state
+.sisyphus/boulder.json
+
+# OS
+Thumbs.db
