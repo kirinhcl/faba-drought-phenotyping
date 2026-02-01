@@ -1,0 +1,16 @@
+# =============================================================================
+# Variant 8: BioCLIP Backbone (ImageOmics BioCLIP)
+# =============================================================================
+# Tests the contribution of the image encoder by replacing DINOv2 with BioCLIP.
+# This variant uses:
+# - ImageOmics BioCLIP image encoder (768-dim output)
+# - Frozen encoder (same as DINOv2 baseline)
+# - All modalities: image, fluorescence, environment, watering
+# - Temporal transformer with 2 layers
+# - All 4 task heads remain active
+#
+# Expected: Performance difference indicates encoder architecture/pretraining effects
+# BioCLIP is trained on biological images, so may have better inductive bias for plants
+
+model:
+  image_encoder: "imageomics/bioclip"

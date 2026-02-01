@@ -1,0 +1,24 @@
+# =============================================================================
+# Variant 5: Single Task - DAG Only (DINOv2)
+# =============================================================================
+# Tests the contribution of multi-task learning by training only on DAG prediction.
+# This variant uses:
+# - DINOv2-base image encoder (768-dim)
+# - All modalities: image, fluorescence, environment, watering
+# - Temporal transformer with 2 layers
+# - Only DAG regression and classification heads active
+# - Biomass and trajectory tasks disabled (loss weight = 0)
+#
+# Expected: Performance change indicates multi-task learning effects
+
+model:
+  heads:
+    dag_regression: true
+    dag_classification: true
+    biomass_regression: false
+    trajectory: false
+
+training:
+  loss_weights:
+    biomass: 0.0
+    trajectory: 0.0

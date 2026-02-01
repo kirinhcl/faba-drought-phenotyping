@@ -1,0 +1,13 @@
+# =============================================================================
+# Variant 1: Full Model (DINOv2)
+# =============================================================================
+# Baseline ablation variant using all default settings.
+# This variant tests the complete model with:
+# - DINOv2-base image encoder
+# - All modalities: image, fluorescence, environment, watering
+# - Temporal transformer with 2 layers
+# - All 4 task heads: DAG regression/classification, biomass, trajectory
+# - Multi-task learning with balanced loss weights
+#
+# This file is intentionally minimal — it inherits all settings from default.yaml
+# and serves as the reference point for all other ablation variants.
