@@ -163,7 +163,8 @@ class BioCLIPBackbone(nn.Module):
         def hook_fn(module, input, output):
             self.cls_features = output[:, 0, :].detach().cpu()
         
-        self.hook_handle = self.model.visual.trunk.norm.register_forward_hook(hook_fn)
+        # open_clip VisionTransformer: ln_post is the final LayerNorm before proj
+        self.hook_handle = self.model.visual.ln_post.register_forward_hook(hook_fn)
     
     def preprocess(self, img: Image.Image) -> torch.Tensor:
         return self.preprocess_fn(img)
