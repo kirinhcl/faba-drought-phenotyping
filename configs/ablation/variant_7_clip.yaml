@@ -1,0 +1,15 @@
+# =============================================================================
+# Variant 7: CLIP Backbone (OpenAI CLIP ViT-B)
+# =============================================================================
+# Tests the contribution of the image encoder by replacing DINOv2 with CLIP.
+# This variant uses:
+# - OpenAI CLIP ViT-base-patch16 image encoder (768-dim output)
+# - Frozen encoder (same as DINOv2 baseline)
+# - All modalities: image, fluorescence, environment, watering
+# - Temporal transformer with 2 layers
+# - All 4 task heads remain active
+#
+# Expected: Performance difference indicates encoder architecture/pretraining effects
+
+model:
+  image_encoder: "openai/clip-vit-base-patch16"

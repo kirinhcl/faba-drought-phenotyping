@@ -1,0 +1,18 @@
+# =============================================================================
+# Variant 3: Image + Fluorescence (DINOv2)
+# =============================================================================
+# Tests the contribution of fluorescence data while removing environment and watering.
+# This variant combines:
+# - DINOv2-base image encoder (768-dim)
+# - Fluorescence features (~93-96 params)
+# - Temporal transformer processes image + fluorescence
+# - Environment and watering inputs are disabled
+# - All 4 task heads remain active
+#
+# Expected: Intermediate performance between image-only and full model
+
+model:
+  ablation:
+    use_fluorescence: true
+    use_environment: false
+    use_watering: false

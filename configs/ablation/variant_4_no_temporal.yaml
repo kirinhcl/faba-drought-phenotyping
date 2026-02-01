@@ -1,0 +1,16 @@
+# =============================================================================
+# Variant 4: No Temporal (DINOv2)
+# =============================================================================
+# Tests the contribution of temporal modeling by replacing the temporal transformer
+# with mean pooling across timepoints.
+# This variant uses:
+# - DINOv2-base image encoder (768-dim)
+# - All modalities: image, fluorescence, environment, watering
+# - Mean pooling instead of temporal transformer (no temporal dependencies)
+# - All 4 task heads remain active
+#
+# Expected: Performance drop indicates importance of temporal dynamics
+
+model:
+  ablation:
+    use_temporal: false

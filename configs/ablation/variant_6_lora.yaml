@@ -1,0 +1,22 @@
+# =============================================================================
+# Variant 6: DINOv2 with LoRA Fine-tuning
+# =============================================================================
+# Tests parameter-efficient fine-tuning using Low-Rank Adaptation (LoRA).
+# This variant uses:
+# - DINOv2-base image encoder with LoRA adapters (rank=8)
+# - Encoder is NOT frozen — LoRA modules are trainable
+# - All modalities: image, fluorescence, environment, watering
+# - Temporal transformer with 2 layers
+# - All 4 task heads remain active
+#
+# NOTE: LoRA fine-tuning requires runtime feature extraction (not pre-extracted).
+# The training script must detect this config and extract features on-the-fly
+# instead of loading pre-computed features from disk.
+#
+# Expected: Comparable or better performance with fewer trainable parameters
+
+model:
+  freeze_encoder: false
+  lora:
+    enabled: true
+    rank: 8
