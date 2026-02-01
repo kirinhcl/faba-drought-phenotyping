@@ -28,3 +28,6 @@ seaborn>=0.13.0
 
 # Statistics
 scipy>=1.11.0
+
+# Progress
+tqdm>=4.65.0
