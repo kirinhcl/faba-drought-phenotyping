@@ -5,7 +5,7 @@
 # with mean pooling across timepoints.
 # This variant uses:
 # - DINOv2-base image encoder (768-dim)
-# - All modalities: image, fluorescence, environment, watering
+# - All modalities: image, fluorescence, environment, vegetation indices
 # - Mean pooling instead of temporal transformer (no temporal dependencies)
 # - All 4 task heads remain active
 #

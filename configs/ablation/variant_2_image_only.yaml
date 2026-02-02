@@ -1,11 +1,11 @@
 # =============================================================================
 # Variant 2: Image-Only Temporal (DINOv2)
 # =============================================================================
-# Tests the contribution of non-image modalities (fluorescence, environment, watering).
+# Tests the contribution of non-image modalities (fluorescence, environment, vegetation indices).
 # This variant removes all auxiliary inputs and uses only image features:
 # - DINOv2-base image encoder (768-dim)
 # - Temporal transformer processes image features only
-# - Fluorescence, environment, and watering inputs are disabled
+# - Fluorescence, environment, and vegetation index inputs are disabled
 # - All 4 task heads remain active
 #
 # Expected: Performance drop indicates importance of auxiliary modalities
@@ -14,4 +14,4 @@ model:
   ablation:
     use_fluorescence: false
     use_environment: false
-    use_watering: false
+    use_vi: false

@@ -1,4 +1,4 @@
-"""Multimodal fusion for image, fluorescence, environment, and watering data."""
+"""Multimodal fusion for image, fluorescence, environment, and vegetation index data."""
 
 from __future__ import annotations
 
@@ -15,14 +15,14 @@ def _make_mlp(input_dim: int, hidden_dim: int) -> nn.Sequential:
 
 
 class MultimodalFusion(nn.Module):
-    """Fuses image, fluorescence, environment, and watering modalities."""
+    """Fuses image, fluorescence, environment, and vegetation index modalities."""
 
     def __init__(
         self,
         image_dim: int = 768,
-        fluor_dim: int = 93,
+        fluor_dim: int = 94,
         env_dim: int = 5,
-        water_dim: int = 5,
+        vi_dim: int = 11,
         hidden_dim: int = 128,
         fused_dim: int = 256,
     ) -> None:
@@ -33,11 +33,11 @@ class MultimodalFusion(nn.Module):
 
         self.fluor_proj: nn.Sequential = _make_mlp(fluor_dim, hidden_dim)
         self.env_proj: nn.Sequential = _make_mlp(env_dim, hidden_dim)
-        self.water_proj: nn.Sequential = _make_mlp(water_dim, hidden_dim)
+        self.vi_proj: nn.Sequential = _make_mlp(vi_dim, hidden_dim)
 
         self.fluor_mask_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, hidden_dim))
         self.env_mask_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, hidden_dim))
-        self.water_mask_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, hidden_dim))
+        self.vi_mask_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, hidden_dim))
         self.image_mask_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, image_dim))
 
         fusion_in_dim = image_dim + hidden_dim * 3
@@ -49,7 +49,7 @@ class MultimodalFusion(nn.Module):
         image_emb: Tensor,
         fluor: Tensor,
         env: Tensor,
-        water: Tensor,
+        vi: Tensor,
         image_active: Tensor,
         fluor_mask: Tensor,
     ) -> Tensor:
@@ -59,7 +59,7 @@ class MultimodalFusion(nn.Module):
             image_emb: (B, T, image_dim)
             fluor: (B, T, fluor_dim)
             env: (B, T, env_dim)
-            water: (B, T, water_dim)
+            vi: (B, T, vi_dim)
             image_active: (B, T) bool, True where any view is present
             fluor_mask: (B, T) bool, True where fluorescence is present
 
@@ -79,9 +79,9 @@ class MultimodalFusion(nn.Module):
         image_emb = torch.where(image_active.unsqueeze(-1), image_emb, image_token)
 
         env_proj = self.env_proj(env)  # (B, T, hidden_dim)
-        water_proj = self.water_proj(water)  # (B, T, hidden_dim)
+        vi_proj = self.vi_proj(vi)  # (B, T, hidden_dim)
 
-        fused = torch.cat([image_emb, fluor_proj, env_proj, water_proj], dim=-1)  # (B, T, 1152)
+        fused = torch.cat([image_emb, fluor_proj, env_proj, vi_proj], dim=-1)
         fused = self.fusion_proj(fused)  # (B, T, fused_dim)
         fused = self.fusion_norm(fused)
         return fused

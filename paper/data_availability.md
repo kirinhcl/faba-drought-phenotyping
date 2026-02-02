@@ -1,7 +1,7 @@
 # Data Availability
 
 ## Raw Data
-Raw RGB images (~11,600 images) and chlorophyll fluorescence measurements from the faba bean drought phenotyping experiment are available. The dataset comprises 264 plants across 44 accessions, 2 watering treatments, 3 replicates, and 22 imaging rounds. Upon acceptance, the complete dataset will be deposited on Zenodo with open access (DOI: 10.XXXX/zenodo.XXXXXXX).
+Raw RGB images (~11,600 images) and chlorophyll fluorescence measurements from the faba bean drought phenotyping experiment are available. The dataset comprises 264 plants across 44 accessions, 2 irrigation treatments, 3 replicates, and 22 imaging rounds. Upon acceptance, the complete dataset will be deposited on Zenodo with open access (DOI: 10.XXXX/zenodo.XXXXXXX).
 
 ## Processed Features
 Processed features extracted using DINOv2, CLIP, and BioCLIP models in HDF5 format are available upon request from the corresponding author.

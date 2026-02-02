@@ -37,7 +37,7 @@ class FabaDroughtModel(nn.Module):
             image_dim=fusion_cfg.image_dim,
             fluor_dim=fusion_cfg.fluor_dim,
             env_dim=fusion_cfg.env_dim,
-            water_dim=fusion_cfg.water_dim,
+            vi_dim=fusion_cfg.vi_dim,
             hidden_dim=fusion_cfg.hidden_dim,
             fused_dim=fusion_cfg.fused_dim,
         )
@@ -67,7 +67,7 @@ class FabaDroughtModel(nn.Module):
 
         Args:
             batch: dict with keys images, image_mask, fluorescence, fluor_mask,
-                environment, watering, temporal_positions
+                environment, vi, temporal_positions
 
         Returns:
             dict with task predictions, attention weights, and CLS embedding.
@@ -77,7 +77,7 @@ class FabaDroughtModel(nn.Module):
         fluorescence = batch["fluorescence"]  # (B, T, F)
         fluor_mask = batch["fluor_mask"]  # (B, T)
         environment = batch["environment"]  # (B, T, 5)
-        watering = batch["watering"]  # (B, T, 5)
+        vi = batch["vi"]  # (B, T, 11)
         temporal_positions = batch["temporal_positions"]  # (B, T)
 
         image_emb = self.view_agg(images, image_mask)  # (B, T, 768)
@@ -86,7 +86,7 @@ class FabaDroughtModel(nn.Module):
             image_emb,
             fluorescence,
             environment,
-            watering,
+            vi,
             image_active,
             fluor_mask,
         )  # (B, T, 256)
