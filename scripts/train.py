@@ -131,7 +131,11 @@ def train_fold(
     # Compute validation losses one more time for metrics
     val_losses = trainer.validate()
     
-    # Save metrics
+    # Save metrics (including learned task uncertainty weights)
+    learned_sigma2 = {
+        task: float(torch.exp(param).item())
+        for task, param in trainer.criterion.log_vars.items()
+    }
     metrics = {
         'fold_id': fold_id,
         'best_epoch': trainer.best_epoch,
@@ -139,6 +143,7 @@ def train_fold(
         'final_train_loss': final_train_losses['total'],
         'val_losses': val_losses,
         'train_losses': final_train_losses,
+        'learned_sigma2': learned_sigma2,
     }
     metrics_path = fold_checkpoint_dir / 'metrics.json'
     with open(metrics_path, 'w') as f:

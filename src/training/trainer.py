@@ -61,14 +61,7 @@ class Trainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         
-        # Optimizer
-        self.optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=cfg.training.lr,
-            weight_decay=cfg.training.weight_decay,
-        )
-        
-        # Loss function
+        # Loss function (must be created before optimizer so params are available)
         loss_weights_raw = cfg.training.loss_weights
         loss_weights_dict: Dict[str, float] = {
             'dag_reg': float(loss_weights_raw.dag_reg),
@@ -77,6 +70,14 @@ class Trainer:
             'trajectory': float(loss_weights_raw.trajectory),
         }
         self.criterion = MultiTaskLoss(loss_weights_dict)
+        self.criterion.to(self.device)
+        
+        # Optimizer (includes learned uncertainty weights from criterion)
+        self.optimizer = torch.optim.AdamW(
+            list(model.parameters()) + list(self.criterion.parameters()),
+            lr=cfg.training.lr,
+            weight_decay=cfg.training.weight_decay,
+        )
         
         # Mixed precision scaler
         self.scaler = torch.amp.GradScaler('cuda')
@@ -160,10 +161,10 @@ class Trainer:
             # Backward pass with gradient scaling
             self.scaler.scale(loss).backward()
             
-            # Gradient clipping
+            # Gradient clipping (model + criterion learnable params)
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(),
+                list(self.model.parameters()) + list(self.criterion.parameters()),
                 self.cfg.training.gradient_clip,
             )
             
@@ -247,6 +248,12 @@ class Trainer:
             epoch_time = time.time() - epoch_start
             current_lr = self.optimizer.param_groups[0]['lr']
             
+            # Collect learned uncertainty weights (sigma^2 = exp(log_var))
+            sigma2 = {
+                task: float(torch.exp(param).item())
+                for task, param in self.criterion.log_vars.items()
+            }
+
             # Logging
             if self.use_wandb:
                 import wandb
@@ -259,15 +266,19 @@ class Trainer:
                     log_dict[f'train/{key}'] = val
                 for key, val in val_losses.items():
                     log_dict[f'val/{key}'] = val
+                for task, s2 in sigma2.items():
+                    log_dict[f'sigma2/{task}'] = s2
                 wandb.log(log_dict)
             
             # Console logging
+            sigma_str = " ".join(f"{t}={s2:.1f}" for t, s2 in sigma2.items())
             print(
                 f"Epoch {epoch}/{self.cfg.training.max_epochs} | "
                 f"Train Loss: {train_losses['total']:.4f} | "
                 f"Val Loss: {val_losses['total']:.4f} | "
                 f"LR: {current_lr:.2e} | "
-                f"Time: {epoch_time:.1f}s"
+                f"Time: {epoch_time:.1f}s | "
+                f"σ²: {sigma_str}"
             )
             
             # Early stopping check
@@ -310,6 +321,7 @@ class Trainer:
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
+            'criterion_state_dict': self.criterion.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
             'scaler_state_dict': self.scaler.state_dict(),
@@ -334,6 +346,8 @@ class Trainer:
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         
         self.model.load_state_dict(checkpoint['model_state_dict'])
+        if 'criterion_state_dict' in checkpoint:
+            self.criterion.load_state_dict(checkpoint['criterion_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
