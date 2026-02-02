@@ -44,6 +44,15 @@ ROUND_TO_DATE = {
 EXPERIMENT_START = '2024-10-11'
 
 
+def _get_plant_id_col(df: pd.DataFrame) -> str:
+    """Return the plant ID column name, preferring 'Plant ID' then 'Tray ID'."""
+    if 'Plant ID' in df.columns:
+        return 'Plant ID'
+    if 'Tray ID' in df.columns:
+        return 'Tray ID'
+    raise KeyError(f"No plant identifier column found. Columns: {list(df.columns)}")
+
+
 class FabaDroughtDataset(Dataset[Dict[str, Any]]):
     """Multimodal time-series dataset for faba bean drought phenotyping.
     
@@ -383,14 +392,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         traj_path = Path(self.cfg.data.raw.digital_biomass_norm)
         df = pd.read_excel(traj_path)
         
-        # Clean Plant ID
-        if 'Plant ID' in df.columns:
-            plant_id_col = 'Plant ID'
-        else:
-            # Try to construct from Accession Num + Replicate + Treatment
-            # This is a fallback, adjust based on actual file structure
-            plant_id_col = 'Plant ID'
-        
+        plant_id_col = _get_plant_id_col(df)
         df[plant_id_col] = df[plant_id_col].apply(lambda x: str(x).strip())
         
         trajectory_data = {}
