@@ -232,6 +232,11 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         else:
             dag_category = -1
         
+        torch.nan_to_num_(fluorescence, nan=0.0)
+        torch.nan_to_num_(environment, nan=0.0)
+        torch.nan_to_num_(watering, nan=0.0)
+        torch.nan_to_num_(trajectory_target, nan=0.0)
+
         return {
             'images': images,
             'image_mask': image_mask,
@@ -373,9 +378,11 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
                     water_loss = float(window_df['Water Loss'].sum())
                     water_loss_per_hr = float(window_df['Water Loss per Hours'].mean())
                     
-                    watering_data[plant_id][round_num] = np.array([
+                    vec = np.array([
                         water_added, whc_bf, whc_af, water_loss, water_loss_per_hr
                     ], dtype=np.float32)
+                    np.nan_to_num(vec, copy=False, nan=0.0)
+                    watering_data[plant_id][round_num] = vec
                 elif round_num == 23:
                     # Round 23 has same date as Round 22, copy Round 22 values
                     if 22 in watering_data[plant_id]:
