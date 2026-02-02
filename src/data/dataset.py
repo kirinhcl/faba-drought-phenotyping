@@ -327,7 +327,8 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         
         # Clean Plant ID
         df['Plant ID'] = df['Plant ID'].apply(lambda x: str(x).strip())
-        df['Date'] = pd.to_datetime(df['Date']).dt.date
+        date_col = 'Measuring Date' if 'Measuring Date' in df.columns else 'Date'
+        df['Date'] = pd.to_datetime(df[date_col]).dt.date
         
         watering_data = {}
         
