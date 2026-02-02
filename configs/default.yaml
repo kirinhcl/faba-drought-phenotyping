@@ -21,7 +21,7 @@ model:
     image_dim: 768       # DINOv2-B output dim
     fluor_dim: 94        # actual count from FCQ_FabaDr_Auto.xlsx
     env_dim: 5           # li1_Buffer_uE, t1_Buffer_C, rh1_Buffer_%, t2_Tunnel_C, rh2_Tunnel_%
-    water_dim: 5         # Water Added, WHC.Bf, WHC.Af, Water Loss, Water Loss per Hours
+    vi_dim: 11           # ExG, GREENESS, GLI, GREEN_STRENGHT, NGRVI, VARI, BG_RATIO, CHROMA_BASE, CHROMA_RATIO, CHROMA_DIFFERENCE, TGI
     hidden_dim: 128
     fused_dim: 256
 
@@ -75,7 +75,7 @@ data:
     fluorescence: "data/TimeCourse Datasets/FCQ_FabaDr_Auto.xlsx"
     fluorescence_reshaped: "data/TimeCourse Datasets/FCQ_FabaDr_Auto_Reshape.xlsx"
     env_data: "data/TimeCourse Datasets/EnvData_FabaDr.xlsx"
-    watering: "data/TimeCourse Datasets/SC_Watering_24_FabaDr_Auto.xlsx"
+    veg_index: "data/TimeCourse Datasets/VegIndex_FabaDr_RGB2.xlsx"
     digital_biomass: "data/TimeCourse Datasets/DigitalBiomass_FabaDr_Auto.xlsx"
     digital_biomass_norm: "data/TimeCourse Datasets/DigitalBiomass_Norm_FabaDr_Auto.xlsx"
     plant_height: "data/TimeCourse Datasets/PlantHeight_Norm_FabaDr_Auto.xlsx"

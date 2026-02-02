@@ -4,7 +4,7 @@
 # Tests the contribution of multi-task learning by training only on DAG prediction.
 # This variant uses:
 # - DINOv2-base image encoder (768-dim)
-# - All modalities: image, fluorescence, environment, watering
+# - All modalities: image, fluorescence, environment, vegetation indices
 # - Temporal transformer with 2 layers
 # - Only DAG regression and classification heads active
 # - Biomass and trajectory tasks disabled (loss weight = 0)

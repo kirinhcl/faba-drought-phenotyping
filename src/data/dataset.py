@@ -1,14 +1,14 @@
 """PyTorch dataset for Faba Bean drought phenotyping multimodal time-series data.
 
 Loads pre-extracted image features, fluorescence measurements, environment data,
-watering records, and trajectory targets for all 264 plants across 22 timepoints.
+vegetation index, and trajectory targets for all 264 plants across 22 timepoints.
 """
 
 from __future__ import annotations
 
 import json
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
@@ -41,8 +41,6 @@ ROUND_TO_DATE = {
     22: '2024-11-18', 23: '2024-11-18'
 }
 
-EXPERIMENT_START = '2024-10-11'
-
 
 def _get_plant_id_col(df: pd.DataFrame) -> str:
     """Return the plant ID column name, preferring 'Plant ID' then 'Tray ID'."""
@@ -60,7 +58,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
     - Pre-extracted image features (DINOv2/CLIP/BioCLIP) from HDF5
     - Fluorescence measurements (93 parameters)
     - Environment data (5 parameters: light, temp, humidity)
-    - Watering records (5 parameters per plant)
+    - Vegetation indices (11 RGB-derived indices per plant)
     - Trajectory targets (digital biomass norm)
     - Endpoint targets (DAG onset, biomass)
     
@@ -74,7 +72,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             fluorescence: (T=22, F=fluor_dim) float32 - Fluorescence params
             fluor_mask: (T=22,) bool - Valid fluorescence measurements
             environment: (T=22, E=5) float32 - Environment params
-            watering: (T=22, W=5) float32 - Watering params
+            vi: (T=22, VI=11) float32 - Vegetation index params
             temporal_positions: (T=22,) float32 - DAG values
             dag_target: float - Drought onset DAG (NaN for WHC-80)
             dag_category: long - 0=Early, 1=Mid, 2=Late (-1 for WHC-80)
@@ -119,8 +117,8 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         # Load environment data (global per round)
         self.env_data = self._load_environment()
         
-        # Load watering data (per plant per round)
-        self.watering_data = self._load_watering()
+        # Load vegetation index data (per plant per round)
+        self.vi_data, self.vi_dim = self._load_vi()
         
         # Load trajectory targets (digital biomass norm)
         self.trajectory_data = self._load_trajectory()
@@ -155,7 +153,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         fluorescence = torch.zeros((T, self.fluor_dim), dtype=torch.float32)
         fluor_mask = torch.zeros(T, dtype=torch.bool)
         environment = torch.zeros((T, 5), dtype=torch.float32)
-        watering = torch.zeros((T, 5), dtype=torch.float32)
+        vi = torch.zeros((T, self.vi_dim), dtype=torch.float32)
         trajectory_target = torch.zeros(T, dtype=torch.float32)
         trajectory_mask = torch.zeros(T, dtype=torch.bool)
         
@@ -185,12 +183,12 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             if round_num in self.env_data:
                 environment[t_idx] = torch.from_numpy(self.env_data[round_num])
         
-        # Load watering data (per plant)
-        if plant_id in self.watering_data:
-            for round_num, water_vec in self.watering_data[plant_id].items():
+        # Load vegetation index data (per plant)
+        if plant_id in self.vi_data:
+            for round_num, vi_vec in self.vi_data[plant_id].items():
                 if 2 <= round_num <= 23:
                     t_idx = round_num - 2
-                    watering[t_idx] = torch.from_numpy(water_vec)
+                    vi[t_idx] = torch.from_numpy(vi_vec)
         
         # Load trajectory targets
         if plant_id in self.trajectory_data:
@@ -234,7 +232,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         
         torch.nan_to_num_(fluorescence, nan=0.0)
         torch.nan_to_num_(environment, nan=0.0)
-        torch.nan_to_num_(watering, nan=0.0)
+        torch.nan_to_num_(vi, nan=0.0)
         torch.nan_to_num_(trajectory_target, nan=0.0)
 
         return {
@@ -243,7 +241,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             'fluorescence': fluorescence,
             'fluor_mask': fluor_mask,
             'environment': environment,
-            'watering': watering,
+            'vi': vi,
             'temporal_positions': self.temporal_positions.clone(),
             'dag_target': dag_target,
             'dag_category': torch.tensor(dag_category, dtype=torch.long),
@@ -328,67 +326,40 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         
         return env_data
     
-    def _load_watering(self) -> Dict[str, Dict[int, npt.NDArray[np.float32]]]:
-        """Load watering data aggregated per plant per round window.
+    def _load_vi(self) -> tuple[Dict[str, Dict[int, npt.NDArray[np.float32]]], int]:
+        """Load vegetation index data per plant per round.
+        
+        Reads 11 RGB-derived vegetation indices from VegIndex_FabaDr_RGB2.xlsx.
         
         Returns:
-            {plant_id: {round: np.array(5,)}} - Watering parameters
-            5 values: Water Added (sum), WHC.Bf (last), WHC.Af (last),
-                     Water Loss (sum), Water Loss per Hours (mean)
+            (vi_data, vi_dim) where:
+            - vi_data: {plant_id: {round_order: np.array(vi_dim,)}}
+            - vi_dim: number of vegetation index features (11)
         """
-        water_path = Path(self.cfg.data.raw.watering)
-        df = pd.read_excel(water_path)
+        vi_path = Path(self.cfg.data.raw.veg_index)
+        df = pd.read_excel(vi_path)
         
-        # Clean Plant ID
-        df['Plant ID'] = df['Plant ID'].apply(lambda x: str(x).strip())
-        date_col = 'Measuring Date' if 'Measuring Date' in df.columns else 'Date'
-        df['Date'] = pd.to_datetime(df[date_col]).dt.date
+        pid_col = _get_plant_id_col(df)
+        df[pid_col] = df[pid_col].apply(lambda x: str(x).strip())
         
-        watering_data = {}
+        vi_cols = [
+            'ExG', 'GREENESS', 'GLI', 'GREEN_STRENGHT', 'NGRVI', 'VARI',
+            'BG_RATIO', 'CHROMA_BASE', 'CHROMA_RATIO', 'CHROMA_DIFFERENCE', 'TGI',
+        ]
+        vi_dim = len(vi_cols)
         
-        # Get unique plants
-        plants = df['Plant ID'].unique()
-        
-        for plant_id in plants:
-            plant_df = df[df['Plant ID'] == plant_id]
-            watering_data[plant_id] = {}
+        vi_data: Dict[str, Dict[int, npt.NDArray[np.float32]]] = {}
+        for _, row in df.iterrows():
+            plant_id = str(row[pid_col])
+            round_order = int(row['Round Order'])
+            vec = np.array(row[vi_cols].tolist(), dtype=np.float32)
+            np.nan_to_num(vec, copy=False, nan=0.0)
             
-            for round_num in range(2, 24):
-                # Define window for this round
-                if round_num == 2:
-                    start_date = datetime.strptime(EXPERIMENT_START, '%Y-%m-%d').date()
-                else:
-                    prev_date = datetime.strptime(ROUND_TO_DATE[round_num - 1], '%Y-%m-%d').date()
-                    start_date = prev_date + timedelta(days=1)
-                
-                end_date = datetime.strptime(ROUND_TO_DATE[round_num], '%Y-%m-%d').date()
-                
-                # Filter data in window
-                window_df = plant_df[
-                    (plant_df['Date'] >= start_date) &
-                    (plant_df['Date'] <= end_date)
-                ]
-                
-                if len(window_df) > 0:
-                    water_added = float(window_df['Water Added'].sum())
-                    whc_bf_list = window_df['WHC.Bf'].tolist()
-                    whc_bf = float(whc_bf_list[-1])
-                    whc_af_list = window_df['WHC.Af'].tolist()
-                    whc_af = float(whc_af_list[-1])
-                    water_loss = float(window_df['Water Loss'].sum())
-                    water_loss_per_hr = float(window_df['Water Loss per Hours'].mean())
-                    
-                    vec = np.array([
-                        water_added, whc_bf, whc_af, water_loss, water_loss_per_hr
-                    ], dtype=np.float32)
-                    np.nan_to_num(vec, copy=False, nan=0.0)
-                    watering_data[plant_id][round_num] = vec
-                elif round_num == 23:
-                    # Round 23 has same date as Round 22, copy Round 22 values
-                    if 22 in watering_data[plant_id]:
-                        watering_data[plant_id][23] = watering_data[plant_id][22].copy()
+            if plant_id not in vi_data:
+                vi_data[plant_id] = {}
+            vi_data[plant_id][round_order] = vec
         
-        return watering_data
+        return vi_data, vi_dim
     
     def _load_trajectory(self) -> Dict[str, Dict[int, float]]:
         """Load digital biomass trajectory targets.

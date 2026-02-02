@@ -4,7 +4,7 @@
 # Baseline ablation variant using all default settings.
 # This variant tests the complete model with:
 # - DINOv2-base image encoder
-# - All modalities: image, fluorescence, environment, watering
+# - All modalities: image, fluorescence, environment, vegetation indices
 # - Temporal transformer with 2 layers
 # - All 4 task heads: DAG regression/classification, biomass, trajectory
 # - Multi-task learning with balanced loss weights

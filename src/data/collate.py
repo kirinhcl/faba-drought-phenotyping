@@ -23,7 +23,7 @@ def faba_collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
             fluorescence: (B, T=22, F) float32
             fluor_mask: (B, T=22) bool
             environment: (B, T=22, E=5) float32
-            watering: (B, T=22, W=5) float32
+            vi: (B, T=22, VI=11) float32
             temporal_positions: (B, T=22) float32
             dag_target: (B,) float32
             dag_category: (B,) long
@@ -42,7 +42,7 @@ def faba_collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         'fluorescence': torch.stack([item['fluorescence'] for item in batch]),
         'fluor_mask': torch.stack([item['fluor_mask'] for item in batch]),
         'environment': torch.stack([item['environment'] for item in batch]),
-        'watering': torch.stack([item['watering'] for item in batch]),
+        'vi': torch.stack([item['vi'] for item in batch]),
         'temporal_positions': torch.stack([item['temporal_positions'] for item in batch]),
         'dag_target': torch.tensor([item['dag_target'] for item in batch], dtype=torch.float32),
         'dag_category': torch.stack([item['dag_category'] for item in batch]),

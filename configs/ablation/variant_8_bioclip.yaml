@@ -5,7 +5,7 @@
 # This variant uses:
 # - ImageOmics BioCLIP image encoder (768-dim output)
 # - Frozen encoder (same as DINOv2 baseline)
-# - All modalities: image, fluorescence, environment, watering
+# - All modalities: image, fluorescence, environment, vegetation indices
 # - Temporal transformer with 2 layers
 # - All 4 task heads remain active
 #
