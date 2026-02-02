@@ -19,7 +19,7 @@ model:
 
   fusion:
     image_dim: 768       # DINOv2-B output dim
-    fluor_dim: 93        # ~93-96 fluorescence params; exact count at load time
+    fluor_dim: 94        # actual count from FCQ_FabaDr_Auto.xlsx
     env_dim: 5           # li1_Buffer_uE, t1_Buffer_C, rh1_Buffer_%, t2_Tunnel_C, rh2_Tunnel_%
     water_dim: 5         # Water Added, WHC.Bf, WHC.Af, Water Loss, Water Loss per Hours
     hidden_dim: 128
