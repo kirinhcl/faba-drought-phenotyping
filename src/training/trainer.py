@@ -80,7 +80,6 @@ class Trainer:
         
         # Mixed precision: bf16 on A100 (same exponent range as fp32, no overflow)
         self.amp_dtype = torch.bfloat16
-        self.scaler = torch.amp.GradScaler('cuda', enabled=False)
         
         # Learning rate scheduler with warmup
         warmup_epochs = cfg.training.warmup_epochs
@@ -163,19 +162,20 @@ class Trainer:
                 self.optimizer.zero_grad()
                 continue
             
-            # Backward pass with gradient scaling
-            self.scaler.scale(loss).backward()
+            # Backward pass
+            loss.backward()
             
-            # Gradient clipping (model only — log_vars use separate LR + clamp)
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(
+            # Gradient clipping + NaN detection
+            grad_norm = torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(),
                 self.cfg.training.gradient_clip,
             )
+            if not torch.isfinite(grad_norm):
+                self.optimizer.zero_grad()
+                continue
             
-            # Optimizer step
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            # Optimizer step (only reached if gradients are clean)
+            self.optimizer.step()
             self.optimizer.zero_grad()
             
             # Clamp log_vars to prevent numerical overflow: σ² in [exp(-6), exp(10)]
@@ -334,7 +334,7 @@ class Trainer:
             'criterion_state_dict': self.criterion.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
-            'scaler_state_dict': self.scaler.state_dict(),
+
             'best_val_loss': self.best_val_loss,
             'best_epoch': self.best_epoch,
             'patience_counter': self.patience_counter,
@@ -360,7 +360,7 @@ class Trainer:
             self.criterion.load_state_dict(checkpoint['criterion_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
+
         
         self.current_epoch = checkpoint['epoch'] + 1
         self.best_val_loss = checkpoint['best_val_loss']
