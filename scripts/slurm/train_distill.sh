@@ -25,10 +25,7 @@ source .venv/bin/activate
 # Create logs directory
 mkdir -p logs
 
-# Copy features to local SSD for fast I/O
-echo "Copying features to local scratch..."
-mkdir -p "$LOCAL_SCRATCH/features"
-cp features/*.h5 "$LOCAL_SCRATCH/features/"
+FEATURE_DIR="${REPO_DIR}/features"
 
 # Get fold ID from array task ID
 FOLD_ID=$SLURM_ARRAY_TASK_ID
@@ -46,15 +43,15 @@ echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader)"
 echo "Config: ${CONFIG}"
 echo "Teacher dir: ${TEACHER_DIR}"
 echo "Checkpoint dir: ${CHECKPOINT_DIR}"
+echo "Feature dir: ${FEATURE_DIR}"
 echo "Start: $(date)"
 
-# Run distillation training for this fold
 python scripts/train_distill.py \
     --config "${CONFIG}" \
     --fold "${FOLD_ID}" \
     --teacher_dir "${TEACHER_DIR}" \
     --checkpoint_dir "${CHECKPOINT_DIR}" \
-    --feature_dir "$LOCAL_SCRATCH/features/"
+    --feature_dir "${FEATURE_DIR}"
 
 echo "End: $(date)"
 echo "=== Fold ${FOLD_ID} completed ==="
