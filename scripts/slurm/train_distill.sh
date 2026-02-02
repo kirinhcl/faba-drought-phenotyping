@@ -26,6 +26,7 @@ source .venv/bin/activate
 mkdir -p logs
 
 export PYTHONPATH="${REPO_DIR}:${PYTHONPATH:-}"
+export WANDB_MODE=disabled
 FEATURE_DIR="${REPO_DIR}/features"
 
 # Get fold ID from array task ID
