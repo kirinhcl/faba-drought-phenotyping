@@ -116,7 +116,9 @@ class Trainer:
         self.current_epoch = 0
         
         # Wandb initialization
-        self.use_wandb = cfg.logging.wandb.mode != 'disabled'
+        import os
+        wandb_mode = os.environ.get('WANDB_MODE', str(cfg.logging.wandb.mode))
+        self.use_wandb = wandb_mode != 'disabled'
         if self.use_wandb:
             import wandb
             wandb.init(
@@ -124,7 +126,7 @@ class Trainer:
                 entity=str(cfg.logging.wandb.entity) if cfg.logging.wandb.entity else None,
                 name=f"fold_{fold_id}",
                 config=OmegaConf.to_container(cfg, resolve=True),
-                mode=str(cfg.logging.wandb.mode),
+                mode=wandb_mode,
             )
     
     def train_epoch(self) -> Dict[str, float]:
