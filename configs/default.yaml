@@ -43,9 +43,9 @@ training:
 
   loss_weights:
     dag_reg: 1.0
-    dag_cls: 0.5
+    dag_cls: 1.0
     biomass: 1.0
-    trajectory: 0.5
+    trajectory: 1.0
 
   cv:
     strategy: "logo"           # leave-genotype-out

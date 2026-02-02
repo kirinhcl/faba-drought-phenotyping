@@ -10,19 +10,37 @@ import torch.nn.functional as F
 
 
 class MultiTaskLoss(nn.Module):
-    """Configurable multi-task loss for drought phenotyping."""
+    """Multi-task loss with learned uncertainty weighting (Kendall et al., CVPR 2018).
+
+    Each task gets a learnable log-variance parameter s_k = log(sigma_k^2).
+    Regression:      0.5 * exp(-s) * L + 0.5 * s
+    Classification:  exp(-s) * L + 0.5 * s
+    The loss_weights dict gates tasks on/off (0 = disabled for ablation).
+    """
+
+    TASK_TYPES: dict[str, str] = {
+        "dag_reg": "regression",
+        "dag_cls": "classification",
+        "biomass": "regression",
+        "trajectory": "regression",
+    }
 
     def __init__(self, loss_weights: Optional[dict[str, float]] = None) -> None:
         super().__init__()
         defaults = {
             "dag_reg": 1.0,
-            "dag_cls": 0.5,
+            "dag_cls": 1.0,
             "biomass": 1.0,
-            "trajectory": 0.5,
+            "trajectory": 1.0,
         }
         if loss_weights:
             defaults.update(loss_weights)
         self.loss_weights: dict[str, float] = defaults
+
+        self.log_vars = nn.ParameterDict({
+            task: nn.Parameter(torch.zeros(1))
+            for task in self.TASK_TYPES
+        })
 
     def forward(
         self,
@@ -122,21 +140,31 @@ class MultiTaskLoss(nn.Module):
                 diff = (trajectory_pred - trajectory_target) ** 2
                 trajectory_loss = diff[trajectory_mask].mean()
 
+        raw_losses = {
+            "dag_reg": dag_reg_loss,
+            "dag_cls": dag_cls_loss,
+            "biomass": biomass_loss,
+            "trajectory": trajectory_loss,
+        }
+        pred_gates = {
+            "dag_reg": dag_reg_pred is not None,
+            "dag_cls": dag_cls_pred is not None,
+            "biomass": biomass_pred is not None,
+            "trajectory": trajectory_pred is not None,
+        }
+
         total_loss = zero
-        if dag_reg_pred is not None:
-            total_loss = total_loss + self.loss_weights["dag_reg"] * dag_reg_loss
-        if dag_cls_pred is not None:
-            total_loss = total_loss + self.loss_weights["dag_cls"] * dag_cls_loss
-        if biomass_pred is not None:
-            total_loss = total_loss + self.loss_weights["biomass"] * biomass_loss
-        if trajectory_pred is not None:
-            total_loss = total_loss + self.loss_weights["trajectory"] * trajectory_loss
+        for task, raw_loss in raw_losses.items():
+            if self.loss_weights[task] <= 0 or not pred_gates[task]:
+                continue
+            s = self.log_vars[task].squeeze()
+            if self.TASK_TYPES[task] == "regression":
+                total_loss = total_loss + 0.5 * torch.exp(-s) * raw_loss + 0.5 * s
+            else:
+                total_loss = total_loss + torch.exp(-s) * raw_loss + 0.5 * s
 
         loss_dict = {
-            "dag_reg": float(dag_reg_loss.detach().item()),
-            "dag_cls": float(dag_cls_loss.detach().item()),
-            "biomass": float(biomass_loss.detach().item()),
-            "trajectory": float(trajectory_loss.detach().item()),
+            task: float(raw_losses[task].detach().item()) for task in raw_losses
         }
         return total_loss, loss_dict
 
