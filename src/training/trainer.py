@@ -78,8 +78,9 @@ class Trainer:
             {'params': self.criterion.parameters(), 'lr': 1e-2, 'weight_decay': 0.0},
         ], lr=cfg.training.lr, weight_decay=cfg.training.weight_decay)
         
-        # Mixed precision scaler
-        self.scaler = torch.amp.GradScaler('cuda')
+        # Mixed precision: bf16 on A100 (same exponent range as fp32, no overflow)
+        self.amp_dtype = torch.bfloat16
+        self.scaler = torch.amp.GradScaler('cuda', enabled=False)
         
         # Learning rate scheduler with warmup
         warmup_epochs = cfg.training.warmup_epochs
@@ -153,7 +154,7 @@ class Trainer:
             }
             
             # Mixed precision forward pass
-            with torch.amp.autocast('cuda', dtype=torch.float16):
+            with torch.amp.autocast('cuda', dtype=self.amp_dtype):
                 outputs = self.model(batch)
                 loss, loss_dict = self.criterion(outputs, batch)
             
@@ -218,9 +219,9 @@ class Trainer:
                     for k, v in batch.items()
                 }
                 
-                # Forward pass (no mixed precision for validation)
-                outputs = self.model(batch)
-                loss, loss_dict = self.criterion(outputs, batch)
+                with torch.amp.autocast('cuda', dtype=self.amp_dtype):
+                    outputs = self.model(batch)
+                    loss, loss_dict = self.criterion(outputs, batch)
                 
                 # Accumulate losses
                 epoch_losses['total'] += loss.item()
