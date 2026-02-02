@@ -191,8 +191,11 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    # Load config
-    cfg = load_config(args.config)
+    # Load config (ablation configs overlay on default.yaml)
+    base_config = str(Path(args.config).parent.parent / 'configs' / 'default.yaml')
+    if not Path(base_config).exists():
+        base_config = 'configs/default.yaml'
+    cfg = load_config(args.config, base_path=base_config)
     
     # Override feature dir if specified
     if args.feature_dir:
