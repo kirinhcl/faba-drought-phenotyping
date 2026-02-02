@@ -72,12 +72,11 @@ class Trainer:
         self.criterion = MultiTaskLoss(loss_weights_dict)
         self.criterion.to(self.device)
         
-        # Optimizer (includes learned uncertainty weights from criterion)
-        self.optimizer = torch.optim.AdamW(
-            list(model.parameters()) + list(self.criterion.parameters()),
-            lr=cfg.training.lr,
-            weight_decay=cfg.training.weight_decay,
-        )
+        # Optimizer: separate param groups for model vs uncertainty weights
+        self.optimizer = torch.optim.AdamW([
+            {'params': model.parameters()},
+            {'params': self.criterion.parameters(), 'lr': 1e-2, 'weight_decay': 0.0},
+        ], lr=cfg.training.lr, weight_decay=cfg.training.weight_decay)
         
         # Mixed precision scaler
         self.scaler = torch.amp.GradScaler('cuda')
@@ -158,13 +157,18 @@ class Trainer:
                 outputs = self.model(batch)
                 loss, loss_dict = self.criterion(outputs, batch)
             
+            # NaN guard — skip batch if loss is invalid
+            if not torch.isfinite(loss):
+                self.optimizer.zero_grad()
+                continue
+            
             # Backward pass with gradient scaling
             self.scaler.scale(loss).backward()
             
-            # Gradient clipping (model + criterion learnable params)
+            # Gradient clipping (model only — log_vars use separate LR + clamp)
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(
-                list(self.model.parameters()) + list(self.criterion.parameters()),
+                self.model.parameters(),
                 self.cfg.training.gradient_clip,
             )
             
@@ -172,6 +176,11 @@ class Trainer:
             self.scaler.step(self.optimizer)
             self.scaler.update()
             self.optimizer.zero_grad()
+            
+            # Clamp log_vars to prevent numerical overflow: σ² in [exp(-6), exp(10)]
+            with torch.no_grad():
+                for param in self.criterion.log_vars.values():
+                    param.clamp_(-6.0, 10.0)
             
             # Accumulate losses
             epoch_losses['total'] += loss.item()
