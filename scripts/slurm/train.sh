@@ -26,6 +26,7 @@ source .venv/bin/activate
 mkdir -p logs
 
 # Feature directory: read directly from scratch (no NVMe needed)
+export PYTHONPATH="${REPO_DIR}:${PYTHONPATH:-}"
 FEATURE_DIR="${REPO_DIR}/features"
 
 # Get fold ID from array task ID

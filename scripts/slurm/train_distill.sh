@@ -25,6 +25,7 @@ source .venv/bin/activate
 # Create logs directory
 mkdir -p logs
 
+export PYTHONPATH="${REPO_DIR}:${PYTHONPATH:-}"
 FEATURE_DIR="${REPO_DIR}/features"
 
 # Get fold ID from array task ID
