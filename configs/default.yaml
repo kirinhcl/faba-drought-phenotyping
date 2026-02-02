@@ -35,8 +35,8 @@ training:
   batch_size: 16
   lr: 1.0e-4
   weight_decay: 0.01
-  max_epochs: 100
-  patience: 15
+  max_epochs: 200
+  patience: 30
   scheduler: "cosine"          # cosine | step | plateau
   warmup_epochs: 5
   gradient_clip: 1.0
