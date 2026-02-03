@@ -66,6 +66,9 @@ def load_dinov2_mean_features(config: DictConfig) -> pd.DataFrame:
     
     h5_path = f"{config.data.feature_dir}dinov2_features.h5"
     
+    # Expected feature dimension (DINOv2-B/14)
+    EXPECTED_DIM = 768
+    
     plant_features = {}
     
     with h5py.File(h5_path, 'r') as f:
@@ -79,16 +82,24 @@ def load_dinov2_mean_features(config: DictConfig) -> pd.DataFrame:
                 round_group = plant_group[round_key]
                 for view_key in round_group.keys():
                     feature_vec = round_group[view_key][()]
-                    all_features.append(feature_vec)
+                    
+                    # Ensure feature is 1D and has expected dimension
+                    feature_vec = np.asarray(feature_vec).flatten()
+                    if feature_vec.shape[0] == EXPECTED_DIM:
+                        all_features.append(feature_vec)
             
             if len(all_features) > 0:
-                # Average across all (round, view) pairs
-                mean_feature = np.mean(all_features, axis=0)
+                # Stack into (N, 768) array then average
+                stacked = np.stack(all_features, axis=0)
+                mean_feature = np.mean(stacked, axis=0)
                 plant_features[plant_id] = mean_feature
     
     # Convert to DataFrame
     df = pd.DataFrame.from_dict(plant_features, orient='index')
     df.index.name = 'plant_id'
+    
+    # Rename columns to dim_0, dim_1, ...
+    df.columns = [f'dim_{i}' for i in range(df.shape[1])]
     
     return df
 
