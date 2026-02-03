@@ -62,7 +62,13 @@ def compute_dag_regression_metrics(
     
     mae = mean_absolute_error(targets, predictions)
     rmse = np.sqrt(mean_squared_error(targets, predictions))
-    r2 = r2_score(targets, predictions)
+    
+    # R² is undefined when target variance is 0 (e.g., single genotype with same DAG)
+    target_var = np.var(targets)
+    if target_var < 1e-10:
+        r2 = float('nan')
+    else:
+        r2 = r2_score(targets, predictions)
     
     return {
         'mae': float(mae),
@@ -399,6 +405,72 @@ def print_results_table(aggregated: Dict[str, Any]) -> None:
     print("\n" + "="*80)
 
 
+def compute_global_ranking_and_dag_metrics(
+    all_predictions: Dict[int, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Compute ranking and DAG metrics across ALL folds (not per-fold).
+    
+    LOGO-CV tests one genotype per fold, so ranking must be computed globally.
+    Similarly, DAG R² needs all genotypes to have meaningful variance.
+    
+    Args:
+        all_predictions: Dict mapping fold_id to predictions dict
+    
+    Returns:
+        Dict with global ranking metrics and DAG metrics
+    """
+    # Collect all DAG predictions across folds
+    predictions_by_genotype: Dict[str, List[float]] = {}
+    targets_by_genotype: Dict[str, List[float]] = {}
+    
+    all_dag_preds = []
+    all_dag_targets = []
+    
+    for fold_id, fold_predictions in all_predictions.items():
+        for plant_id, pred in fold_predictions.items():
+            if pred['treatment'] != 'WHC-30':
+                continue
+            
+            accession = pred['accession']
+            
+            if pred['dag_reg'] is not None and not np.isnan(pred['dag_target']):
+                dag_pred = pred['dag_reg']
+                dag_target = pred['dag_target']
+                
+                all_dag_preds.append(dag_pred)
+                all_dag_targets.append(dag_target)
+                
+                if accession not in predictions_by_genotype:
+                    predictions_by_genotype[accession] = []
+                    targets_by_genotype[accession] = []
+                predictions_by_genotype[accession].append(dag_pred)
+                targets_by_genotype[accession].append(dag_target)
+    
+    results = {}
+    
+    # Global DAG regression metrics (across all genotypes)
+    if len(all_dag_preds) > 0:
+        results['global_dag_mae'] = float(mean_absolute_error(all_dag_targets, all_dag_preds))
+        results['global_dag_rmse'] = float(np.sqrt(mean_squared_error(all_dag_targets, all_dag_preds)))
+        
+        target_var = np.var(all_dag_targets)
+        if target_var > 1e-10:
+            results['global_dag_r2'] = float(r2_score(all_dag_targets, all_dag_preds))
+        else:
+            results['global_dag_r2'] = float('nan')
+    
+    # Global ranking metrics
+    ranking_metrics = compute_genotype_ranking_metrics(
+        predictions_by_genotype,
+        targets_by_genotype,
+    )
+    results['global_ranking_spearman_rho'] = ranking_metrics['spearman_rho']
+    results['global_ranking_kendall_tau'] = ranking_metrics['kendall_tau']
+    results['n_genotypes_for_ranking'] = len(predictions_by_genotype)
+    
+    return results
+
+
 def main() -> None:
     """Main evaluation script."""
     parser = argparse.ArgumentParser(
@@ -443,12 +515,17 @@ def main() -> None:
     print("Aggregating metrics across folds...")
     aggregated = aggregate_metrics(all_fold_metrics)
     
+    # Compute global ranking and DAG metrics (across all folds)
+    print("Computing global ranking metrics...")
+    global_metrics = compute_global_ranking_and_dag_metrics(all_predictions)
+    
     # Save results
     output_path = Path(args.output) if args.output else results_dir / 'main_results.json'
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     results = {
         'aggregated': aggregated,
+        'global_metrics': global_metrics,
         'per_fold': all_fold_metrics,
         'n_folds': len(all_fold_metrics),
     }
@@ -460,6 +537,19 @@ def main() -> None:
     
     # Print summary table
     print_results_table(aggregated)
+    
+    # Print global metrics
+    print("\n" + "="*80)
+    print("GLOBAL METRICS (across all 44 folds)")
+    print("="*80)
+    print(f"\nDAG Regression (n={global_metrics.get('n_genotypes_for_ranking', 0)} genotypes):")
+    print(f"  MAE:  {global_metrics.get('global_dag_mae', float('nan')):7.4f}")
+    print(f"  RMSE: {global_metrics.get('global_dag_rmse', float('nan')):7.4f}")
+    print(f"  R²:   {global_metrics.get('global_dag_r2', float('nan')):7.4f}")
+    print(f"\nGenotype Ranking:")
+    print(f"  Spearman ρ: {global_metrics.get('global_ranking_spearman_rho', float('nan')):7.4f}")
+    print(f"  Kendall τ:  {global_metrics.get('global_ranking_kendall_tau', float('nan')):7.4f}")
+    print("="*80)
 
 
 if __name__ == '__main__':
