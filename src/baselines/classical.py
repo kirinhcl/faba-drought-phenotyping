@@ -239,16 +239,29 @@ class ClassicalBaselines:
             biomass_feature_cols = self._get_feature_columns_for_task(
                 self.endpoint_features, 'biomass'
             )
-            X_biomass_train = X_train[biomass_feature_cols]
-            X_biomass_test = X_test[biomass_feature_cols]
             
-            # FW prediction
-            y_fw_train = self.plant_metadata.iloc[train_idx]['fw_g'].values
-            valid_mask = ~pd.isna(y_fw_train)
-            X_biomass_train_valid = X_biomass_train[valid_mask]
-            y_fw_train_valid = y_fw_train[valid_mask]
+            # Merge train metadata with endpoint_features for FW prediction
+            train_meta = self.plant_metadata.iloc[train_idx].copy()
+            train_meta = train_meta[pd.notna(train_meta['fw_g'])]
             
-            if y_fw_train_valid.shape[0] > 0:
+            endpoint_with_idx = self.endpoint_features.reset_index()
+            endpoint_with_idx = endpoint_with_idx.rename(columns={'index': 'plant_id'})
+            merged_train = train_meta[['plant_id', 'fw_g']].merge(
+                endpoint_with_idx, on='plant_id', how='inner'
+            )
+            
+            if len(merged_train) > 0:
+                y_fw_train_valid = merged_train['fw_g'].values
+                X_biomass_train_valid = merged_train.drop(columns=['plant_id', 'fw_g'])[biomass_feature_cols]
+                
+                # Merge test metadata with endpoint_features
+                test_meta = self.plant_metadata.iloc[test_idx].copy()
+                merged_test = test_meta[['plant_id']].merge(
+                    endpoint_with_idx, on='plant_id', how='inner'
+                )
+                X_biomass_test = merged_test.drop(columns=['plant_id'])[biomass_feature_cols]
+                test_plant_ids = merged_test['plant_id'].values
+                
                 fw_model = xgb.XGBRegressor(
                     max_depth=6,
                     n_estimators=100,
@@ -260,12 +273,12 @@ class ClassicalBaselines:
                 
                 y_fw_pred = fw_model.predict(X_biomass_test)
                 
-                for plant_id, pred in zip(test_plants, y_fw_pred):
+                for plant_id, pred in zip(test_plant_ids, y_fw_pred):
                     biomass_preds[plant_id] = pred
                 
                 # Get true FW for test plants
                 test_metadata = self.plant_metadata[
-                    self.plant_metadata['plant_id'].isin(test_plants)
+                    self.plant_metadata['plant_id'].isin(test_plant_ids)
                 ]
                 for _, row in test_metadata.iterrows():
                     if pd.notna(row['fw_g']):
@@ -371,16 +384,29 @@ class ClassicalBaselines:
             biomass_feature_cols = self._get_feature_columns_for_task(
                 self.endpoint_features, 'biomass'
             )
-            X_biomass_train = X_train[biomass_feature_cols]
-            X_biomass_test = X_test[biomass_feature_cols]
             
-            # FW prediction
-            y_fw_train = self.plant_metadata.iloc[train_idx]['fw_g'].values
-            valid_mask = ~pd.isna(y_fw_train)
-            X_biomass_train_valid = X_biomass_train[valid_mask]
-            y_fw_train_valid = y_fw_train[valid_mask]
+            # Merge train metadata with endpoint_features for FW prediction
+            train_meta = self.plant_metadata.iloc[train_idx].copy()
+            train_meta = train_meta[pd.notna(train_meta['fw_g'])]
             
-            if y_fw_train_valid.shape[0] > 0:
+            endpoint_with_idx = self.endpoint_features.reset_index()
+            endpoint_with_idx = endpoint_with_idx.rename(columns={'index': 'plant_id'})
+            merged_train = train_meta[['plant_id', 'fw_g']].merge(
+                endpoint_with_idx, on='plant_id', how='inner'
+            )
+            
+            if len(merged_train) > 0:
+                y_fw_train_valid = merged_train['fw_g'].values
+                X_biomass_train_valid = merged_train.drop(columns=['plant_id', 'fw_g'])[biomass_feature_cols]
+                
+                # Merge test metadata with endpoint_features
+                test_meta = self.plant_metadata.iloc[test_idx].copy()
+                merged_test = test_meta[['plant_id']].merge(
+                    endpoint_with_idx, on='plant_id', how='inner'
+                )
+                X_biomass_test = merged_test.drop(columns=['plant_id'])[biomass_feature_cols]
+                test_plant_ids = merged_test['plant_id'].values
+                
                 fw_model = RandomForestRegressor(
                     n_estimators=200,
                     max_depth=None,
@@ -391,7 +417,7 @@ class ClassicalBaselines:
                 
                 y_fw_pred = fw_model.predict(X_biomass_test)
                 
-                for plant_id, pred in zip(test_plants, y_fw_pred):
+                for plant_id, pred in zip(test_plant_ids, y_fw_pred):
                     biomass_preds[plant_id] = pred
                 
                 # Get true FW for test plants
@@ -495,16 +521,27 @@ class ClassicalBaselines:
                             dag_true[row['plant_id']] = row['dag_drought_onset']
             
             # Biomass prediction (train on all plants)
-            X_biomass_train = X_train
-            X_biomass_test = X_test
+            # Merge train metadata with dinov2_features for FW prediction
+            train_meta = self.plant_metadata.iloc[train_idx].copy()
+            train_meta = train_meta[pd.notna(train_meta['fw_g'])]
             
-            # FW prediction
-            y_fw_train = self.plant_metadata.iloc[train_idx]['fw_g'].values
-            valid_mask = ~pd.isna(y_fw_train)
-            X_biomass_train_valid = X_biomass_train[valid_mask]
-            y_fw_train_valid = y_fw_train[valid_mask]
+            merged_train = train_meta[['plant_id', 'fw_g']].merge(
+                dinov2_with_idx, on='plant_id', how='inner'
+            )
             
-            if y_fw_train_valid.shape[0] > 0:
+            if len(merged_train) > 0:
+                y_fw_train_valid = merged_train['fw_g'].values
+                feature_cols = [c for c in merged_train.columns if c not in ['plant_id', 'fw_g']]
+                X_biomass_train_valid = merged_train[feature_cols]
+                
+                # Merge test metadata with dinov2_features
+                test_meta = self.plant_metadata.iloc[test_idx].copy()
+                merged_test = test_meta[['plant_id']].merge(
+                    dinov2_with_idx, on='plant_id', how='inner'
+                )
+                X_biomass_test = merged_test[feature_cols]
+                test_plant_ids = merged_test['plant_id'].values
+                
                 fw_model = RandomForestRegressor(
                     n_estimators=200,
                     max_depth=None,
@@ -515,12 +552,12 @@ class ClassicalBaselines:
                 
                 y_fw_pred = fw_model.predict(X_biomass_test)
                 
-                for plant_id, pred in zip(test_plants, y_fw_pred):
+                for plant_id, pred in zip(test_plant_ids, y_fw_pred):
                     biomass_preds[plant_id] = pred
                 
                 # Get true FW for test plants
                 test_metadata = self.plant_metadata[
-                    self.plant_metadata['plant_id'].isin(test_plants)
+                    self.plant_metadata['plant_id'].isin(test_plant_ids)
                 ]
                 for _, row in test_metadata.iterrows():
                     if pd.notna(row['fw_g']):
