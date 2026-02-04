@@ -9,6 +9,104 @@ from torch import Tensor, nn
 import torch.nn.functional as F
 
 
+def _aggregate_by_genotype(
+    predictions: Tensor,
+    targets: Tensor,
+    accessions: Sequence[str],
+    mask: Tensor,
+) -> tuple[Tensor, Tensor]:
+    """Aggregate predictions and targets by genotype (accession).
+    
+    For DAG prediction, we aggregate plant-level predictions to genotype-level
+    because DAG is a genotype-level attribute (same value for all plants of
+    the same genotype under drought treatment).
+    
+    Args:
+        predictions: (B,) tensor of predicted values
+        targets: (B,) tensor of target values
+        accessions: Sequence of genotype names, length B
+        mask: (B,) boolean tensor indicating valid samples (WHC-30 with valid DAG)
+    
+    Returns:
+        (agg_predictions, agg_targets): Aggregated tensors, one per unique genotype
+    """
+    if not mask.any():
+        return predictions[:0], targets[:0]
+    
+    valid_preds = predictions[mask]
+    valid_targets = targets[mask]
+    valid_accessions = [acc for acc, m in zip(accessions, mask.tolist()) if m]
+    
+    if len(valid_accessions) == 0:
+        return predictions[:0], targets[:0]
+    
+    genotype_to_indices: dict[str, list[int]] = {}
+    for idx, acc in enumerate(valid_accessions):
+        if acc not in genotype_to_indices:
+            genotype_to_indices[acc] = []
+        genotype_to_indices[acc].append(idx)
+    
+    agg_preds_list = []
+    agg_targets_list = []
+    
+    for genotype, indices in genotype_to_indices.items():
+        idx_tensor = torch.tensor(indices, device=predictions.device)
+        agg_preds_list.append(valid_preds[idx_tensor].mean())
+        agg_targets_list.append(valid_targets[idx_tensor].mean())
+    
+    agg_predictions = torch.stack(agg_preds_list)
+    agg_targets = torch.stack(agg_targets_list)
+    
+    return agg_predictions, agg_targets
+
+
+def _aggregate_logits_by_genotype(
+    logits: Tensor,
+    targets: Tensor,
+    accessions: Sequence[str],
+    mask: Tensor,
+) -> tuple[Tensor, Tensor]:
+    """Aggregate classification logits by genotype.
+    
+    Args:
+        logits: (B, C) tensor of class logits
+        targets: (B,) tensor of class labels
+        accessions: Sequence of genotype names, length B
+        mask: (B,) boolean tensor indicating valid samples
+    
+    Returns:
+        (agg_logits, agg_targets): Aggregated tensors, one per unique genotype
+    """
+    if not mask.any():
+        return logits[:0], targets[:0]
+    
+    valid_logits = logits[mask]
+    valid_targets = targets[mask]
+    valid_accessions = [acc for acc, m in zip(accessions, mask.tolist()) if m]
+    
+    if len(valid_accessions) == 0:
+        return logits[:0], targets[:0]
+    
+    genotype_to_indices: dict[str, list[int]] = {}
+    for idx, acc in enumerate(valid_accessions):
+        if acc not in genotype_to_indices:
+            genotype_to_indices[acc] = []
+        genotype_to_indices[acc].append(idx)
+    
+    agg_logits_list = []
+    agg_targets_list = []
+    
+    for genotype, indices in genotype_to_indices.items():
+        idx_tensor = torch.tensor(indices, device=logits.device)
+        agg_logits_list.append(valid_logits[idx_tensor].mean(dim=0))
+        agg_targets_list.append(valid_targets[idx_tensor[0]])
+    
+    agg_logits = torch.stack(agg_logits_list)
+    agg_targets = torch.stack(agg_targets_list)
+    
+    return agg_logits, agg_targets
+
+
 class MultiTaskLoss(nn.Module):
     """Multi-task loss with learned uncertainty weighting (Kendall et al., CVPR 2018).
 
@@ -16,6 +114,10 @@ class MultiTaskLoss(nn.Module):
     Regression:      0.5 * exp(-s) * L + 0.5 * s
     Classification:  exp(-s) * L + 0.5 * s
     The loss_weights dict gates tasks on/off (0 = disabled for ablation).
+    
+    DAG losses use genotype-level aggregation: predictions from plants of the
+    same genotype are averaged before computing loss. This is because DAG is
+    a genotype-level attribute, not plant-level.
     """
 
     TASK_TYPES: dict[str, str] = {
@@ -47,17 +149,7 @@ class MultiTaskLoss(nn.Module):
         predictions: dict[str, Optional[Tensor]],
         targets: dict[str, Union[Tensor, Sequence[str]]],
     ) -> tuple[Tensor, dict[str, float]]:
-        """Compute weighted multi-task loss.
-
-        Args:
-            predictions: model outputs
-            targets: dict with dag_target, dag_category, fw_target, dw_target,
-                trajectory_target, trajectory_mask, treatment
-
-        Returns:
-            total_loss: scalar tensor
-            loss_dict: per-task losses as floats
-        """
+        """Compute weighted multi-task loss with genotype-level DAG aggregation."""
         device = None
         for value in predictions.values():
             if isinstance(value, Tensor):
@@ -83,6 +175,13 @@ class MultiTaskLoss(nn.Module):
             if treatment_list
             else torch.zeros(0, device=device, dtype=torch.bool)
         )
+        
+        accession_value = targets.get("accession", [])
+        accession_list: list[str] = (
+            list(accession_value)
+            if isinstance(accession_value, (list, tuple))
+            else []
+        )
 
         dag_reg_loss = zero
         dag_reg_pred = predictions.get("dag_reg")
@@ -92,8 +191,12 @@ class MultiTaskLoss(nn.Module):
             if not isinstance(dag_target_value, Tensor):
                 raise TypeError("dag_target must be a Tensor")
             dag_target = dag_target_value.to(device)
-            if drought_mask.numel() > 0 and drought_mask.any():
-                dag_reg_loss = F.mse_loss(dag_reg_pred[drought_mask], dag_target[drought_mask])
+            if drought_mask.numel() > 0 and drought_mask.any() and len(accession_list) > 0:
+                agg_preds, agg_targets = _aggregate_by_genotype(
+                    dag_reg_pred, dag_target, accession_list, drought_mask
+                )
+                if agg_preds.numel() > 0:
+                    dag_reg_loss = F.mse_loss(agg_preds, agg_targets)
 
         dag_cls_loss = zero
         dag_cls_pred = predictions.get("dag_cls")
@@ -102,11 +205,12 @@ class MultiTaskLoss(nn.Module):
             if not isinstance(dag_category_value, Tensor):
                 raise TypeError("dag_category must be a Tensor")
             dag_category = dag_category_value.to(device).long()
-            if drought_mask.numel() > 0 and drought_mask.any():
-                dag_cls_loss = F.cross_entropy(
-                    dag_cls_pred[drought_mask],
-                    dag_category[drought_mask],
+            if drought_mask.numel() > 0 and drought_mask.any() and len(accession_list) > 0:
+                agg_logits, agg_targets_cls = _aggregate_logits_by_genotype(
+                    dag_cls_pred, dag_category, accession_list, drought_mask
                 )
+                if agg_logits.numel() > 0:
+                    dag_cls_loss = F.cross_entropy(agg_logits, agg_targets_cls)
 
         biomass_loss = zero
         biomass_pred = predictions.get("biomass")
