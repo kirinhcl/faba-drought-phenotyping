@@ -190,24 +190,22 @@ class ClassicalBaselines:
             X_test = self.endpoint_features.loc[test_plants]
             
             # DAG prediction (train on WHC-30 only)
-            whc30_train = self.plant_metadata.iloc[train_idx]
+            whc30_train = self.plant_metadata.iloc[train_idx].copy()
             whc30_train = whc30_train[whc30_train['treatment'] == 'WHC-30']
+            whc30_train = whc30_train[pd.notna(whc30_train['dag_drought_onset'])]
             
-            # Filter to plants that exist in endpoint_features
-            available_plants = set(self.endpoint_features.index)
-            whc30_train = whc30_train[whc30_train['plant_id'].isin(available_plants)]
-            whc30_train_plants = whc30_train['plant_id'].values
+            # Merge with endpoint_features to ensure alignment
+            endpoint_with_idx = self.endpoint_features.reset_index()
+            endpoint_with_idx = endpoint_with_idx.rename(columns={'index': 'plant_id'})
+            merged = whc30_train[['plant_id', 'dag_drought_onset']].merge(
+                endpoint_with_idx, on='plant_id', how='inner'
+            )
             
-            if len(whc30_train_plants) > 0:
-                X_dag_train = self.endpoint_features.loc[whc30_train_plants]
-                y_dag_train = whc30_train['dag_drought_onset'].values
+            if len(merged) > 0:
+                y_dag_train = merged['dag_drought_onset'].values
+                X_dag_train = merged.drop(columns=['plant_id', 'dag_drought_onset'])
                 
-                # Remove NaN targets
-                valid_mask = ~pd.isna(y_dag_train)
-                X_dag_train = X_dag_train[valid_mask]
-                y_dag_train = y_dag_train[valid_mask]
-                
-                if y_dag_train.shape[0] > 0:
+                if len(y_dag_train) > 0:
                     dag_feature_cols = self._get_feature_columns_for_task(
                         self.endpoint_features, 'dag'
                     )
@@ -325,18 +323,20 @@ class ClassicalBaselines:
             X_test = self.endpoint_features.loc[test_plants]
             
             # DAG prediction (train on WHC-30 only)
-            whc30_train = self.plant_metadata.iloc[train_idx]
+            whc30_train = self.plant_metadata.iloc[train_idx].copy()
             whc30_train = whc30_train[whc30_train['treatment'] == 'WHC-30']
-            
-            # Filter to plants that exist in endpoint_features AND have valid DAG
-            whc30_train = whc30_train[whc30_train['plant_id'].isin(self.endpoint_features.index)]
             whc30_train = whc30_train[pd.notna(whc30_train['dag_drought_onset'])]
             
-            if len(whc30_train) > 0:
-                # Use plant_id as index for alignment
-                whc30_train = whc30_train.set_index('plant_id')
-                X_dag_train = self.endpoint_features.loc[whc30_train.index]
-                y_dag_train = whc30_train['dag_drought_onset'].values
+            # Merge with endpoint_features to ensure alignment
+            endpoint_with_idx = self.endpoint_features.reset_index()
+            endpoint_with_idx = endpoint_with_idx.rename(columns={'index': 'plant_id'})
+            merged = whc30_train[['plant_id', 'dag_drought_onset']].merge(
+                endpoint_with_idx, on='plant_id', how='inner'
+            )
+            
+            if len(merged) > 0:
+                y_dag_train = merged['dag_drought_onset'].values
+                X_dag_train = merged.drop(columns=['plant_id', 'dag_drought_onset'])
                 
                 if len(y_dag_train) > 0:
                     dag_feature_cols = self._get_feature_columns_for_task(
@@ -454,18 +454,20 @@ class ClassicalBaselines:
             X_test = self.dinov2_features.loc[test_plants]
             
             # DAG prediction (train on WHC-30 only)
-            whc30_train = self.plant_metadata.iloc[train_idx]
+            whc30_train = self.plant_metadata.iloc[train_idx].copy()
             whc30_train = whc30_train[whc30_train['treatment'] == 'WHC-30']
-            
-            # Filter to plants that exist in dinov2_features AND have valid DAG
-            whc30_train = whc30_train[whc30_train['plant_id'].isin(self.dinov2_features.index)]
             whc30_train = whc30_train[pd.notna(whc30_train['dag_drought_onset'])]
             
-            if len(whc30_train) > 0:
-                # Use plant_id as index for alignment
-                whc30_train = whc30_train.set_index('plant_id')
-                X_dag_train = self.dinov2_features.loc[whc30_train.index]
-                y_dag_train = whc30_train['dag_drought_onset'].values
+            # Merge with dinov2_features to ensure alignment
+            dinov2_with_idx = self.dinov2_features.reset_index()
+            dinov2_with_idx = dinov2_with_idx.rename(columns={'index': 'plant_id'})
+            merged = whc30_train[['plant_id', 'dag_drought_onset']].merge(
+                dinov2_with_idx, on='plant_id', how='inner'
+            )
+            
+            if len(merged) > 0:
+                y_dag_train = merged['dag_drought_onset'].values
+                X_dag_train = merged.drop(columns=['plant_id', 'dag_drought_onset'])
                 
                 if len(y_dag_train) > 0:
                     X_dag_test = X_test
