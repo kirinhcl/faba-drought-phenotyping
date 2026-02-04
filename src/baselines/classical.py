@@ -323,6 +323,10 @@ class ClassicalBaselines:
             # DAG prediction (train on WHC-30 only)
             whc30_train = self.plant_metadata.iloc[train_idx]
             whc30_train = whc30_train[whc30_train['treatment'] == 'WHC-30']
+            
+            # Filter to plants that exist in endpoint_features
+            available_plants = set(self.endpoint_features.index)
+            whc30_train = whc30_train[whc30_train['plant_id'].isin(available_plants)]
             whc30_train_plants = whc30_train['plant_id'].values
             
             if len(whc30_train_plants) > 0:
@@ -452,6 +456,10 @@ class ClassicalBaselines:
             # DAG prediction (train on WHC-30 only)
             whc30_train = self.plant_metadata.iloc[train_idx]
             whc30_train = whc30_train[whc30_train['treatment'] == 'WHC-30']
+            
+            # Filter to plants that exist in dinov2_features
+            available_plants = set(self.dinov2_features.index)
+            whc30_train = whc30_train[whc30_train['plant_id'].isin(available_plants)]
             whc30_train_plants = whc30_train['plant_id'].values
             
             if len(whc30_train_plants) > 0:
