@@ -123,6 +123,7 @@ class MultiTaskLoss(nn.Module):
     TASK_TYPES: dict[str, str] = {
         "dag_reg": "regression",
         "dag_cls": "classification",
+        "dag_fine_cls": "classification",
         "biomass": "regression",
         "trajectory": "regression",
     }
@@ -132,6 +133,7 @@ class MultiTaskLoss(nn.Module):
         defaults = {
             "dag_reg": 1.0,
             "dag_cls": 1.0,
+            "dag_fine_cls": 1.0,
             "biomass": 1.0,
             "trajectory": 1.0,
         }
@@ -212,6 +214,20 @@ class MultiTaskLoss(nn.Module):
                 if agg_logits.numel() > 0:
                     dag_cls_loss = F.cross_entropy(agg_logits, agg_targets_cls)
 
+        dag_fine_cls_loss = zero
+        dag_fine_cls_pred = predictions.get("dag_fine_cls")
+        if dag_fine_cls_pred is not None:
+            dag_class_value = targets.get("dag_class")
+            if dag_class_value is not None and isinstance(dag_class_value, Tensor):
+                dag_class = dag_class_value.to(device).long()
+                valid_mask = drought_mask & (dag_class >= 0)
+                if valid_mask.numel() > 0 and valid_mask.any() and len(accession_list) > 0:
+                    agg_logits_fine, agg_targets_fine = _aggregate_logits_by_genotype(
+                        dag_fine_cls_pred, dag_class, accession_list, valid_mask
+                    )
+                    if agg_logits_fine.numel() > 0:
+                        dag_fine_cls_loss = F.cross_entropy(agg_logits_fine, agg_targets_fine)
+
         biomass_loss = zero
         biomass_pred = predictions.get("biomass")
         if biomass_pred is not None:
@@ -247,12 +263,14 @@ class MultiTaskLoss(nn.Module):
         raw_losses = {
             "dag_reg": dag_reg_loss,
             "dag_cls": dag_cls_loss,
+            "dag_fine_cls": dag_fine_cls_loss,
             "biomass": biomass_loss,
             "trajectory": trajectory_loss,
         }
         pred_gates = {
             "dag_reg": dag_reg_pred is not None,
             "dag_cls": dag_cls_pred is not None,
+            "dag_fine_cls": dag_fine_cls_pred is not None,
             "biomass": biomass_pred is not None,
             "trajectory": trajectory_pred is not None,
         }

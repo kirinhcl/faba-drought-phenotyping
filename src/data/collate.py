@@ -46,6 +46,7 @@ def faba_collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         'temporal_positions': torch.stack([item['temporal_positions'] for item in batch]),
         'dag_target': torch.tensor([item['dag_target'] for item in batch], dtype=torch.float32),
         'dag_category': torch.stack([item['dag_category'] for item in batch]),
+        'dag_class': torch.stack([item['dag_class'] for item in batch]),
         'fw_target': torch.tensor([item['fw_target'] for item in batch], dtype=torch.float32),
         'dw_target': torch.tensor([item['dw_target'] for item in batch], dtype=torch.float32),
         'trajectory_target': torch.stack([item['trajectory_target'] for item in batch]),

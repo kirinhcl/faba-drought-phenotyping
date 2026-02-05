@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, cast
 
@@ -105,13 +104,10 @@ def compute_dag_classification_metrics(
     balanced_acc = balanced_accuracy_score(targets, predictions)
     
     # Per-class F1 scores
-    # Suppress expected warnings for LOGO-CV where single genotype may have limited classes
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=UserWarning, module='sklearn.metrics')
-        f1_per_class = np.array(
-            f1_score(targets, predictions, labels=[0, 1, 2], average=None, zero_division=0)
-        )
-        f1_macro = float(f1_score(targets, predictions, average='macro', zero_division=0))
+    f1_per_class = np.array(
+        f1_score(targets, predictions, labels=[0, 1, 2], average=None, zero_division=0)
+    )
+    f1_macro = float(f1_score(targets, predictions, average='macro', zero_division=0))
     
     return {
         'accuracy': float(acc),
