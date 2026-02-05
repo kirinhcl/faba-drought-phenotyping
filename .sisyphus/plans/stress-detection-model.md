@@ -124,9 +124,9 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/model/encoder.py` - ViewAggregation pattern
 
   **Acceptance Criteria**:
-  - [ ] `ModalityGating` outputs fused (B, T, 128) and gates (B, T, 4)
-  - [ ] Gates sum to 1 along last dimension
-  - [ ] `ModalityProjection` handles missing image/fluorescence with mask tokens
+  - [x] `ModalityGating` outputs fused (B, T, 128) and gates (B, T, 4)
+  - [x] Gates sum to 1 along last dimension
+  - [x] `ModalityProjection` handles missing image/fluorescence with mask tokens
 
 ---
 
@@ -175,8 +175,8 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/model/encoder.py` - ViewAggregation
 
   **Acceptance Criteria**:
-  - [ ] Model forward pass produces stress_logits (B, T) and modality_gates (B, T, 4)
-  - [ ] No other task heads (DAG, biomass, trajectory)
+  - [x] Model forward pass produces stress_logits (B, T) and modality_gates (B, T, 4)
+  - [x] No other task heads (DAG, biomass, trajectory)
 
 ---
 
@@ -224,8 +224,8 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/training/losses.py` - existing MultiTaskLoss pattern
 
   **Acceptance Criteria**:
-  - [ ] Loss computes correctly with masking
-  - [ ] pos_weight handles class imbalance
+  - [x] Loss computes correctly with masking
+  - [x] pos_weight handles class imbalance
 
 ---
 
@@ -265,9 +265,9 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `ROUND_TO_DAG` dict at top of file
 
   **Acceptance Criteria**:
-  - [ ] WHC-30 plants have correct 0→1 transition at threshold DAG
-  - [ ] WHC-80 plants have all zeros
-  - [ ] stress_mask correctly identifies valid timesteps
+  - [x] WHC-30 plants have correct 0→1 transition at threshold DAG
+  - [x] WHC-80 plants have all zeros
+  - [x] stress_mask correctly identifies valid timesteps
 
 ---
 
@@ -287,7 +287,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/data/collate.py` - existing collate function
 
   **Acceptance Criteria**:
-  - [ ] Batch contains stress_labels (B, T) and stress_mask (B, T)
+  - [x] Batch contains stress_labels (B, T) and stress_mask (B, T)
 
 ---
 
@@ -358,8 +358,8 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `configs/default.yaml` - base config structure
 
   **Acceptance Criteria**:
-  - [ ] Config loads without errors
-  - [ ] Model dimensions match (128 for fusion, not 256)
+  - [x] Config loads without errors
+  - [x] Model dimensions match (128 for fusion, not 256)
 
 ---
 
@@ -381,9 +381,9 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/training/trainer.py` - Trainer class (may need stress-specific trainer or reuse)
 
   **Acceptance Criteria**:
-  - [ ] Training runs for all 44 folds
-  - [ ] Checkpoints saved
-  - [ ] Loss decreases over epochs
+  - [x] Training runs for all 44 folds
+  - [x] Checkpoints saved
+  - [x] Loss decreases over epochs
 
 ---
 
@@ -438,9 +438,9 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `src/data/dataset.py` - ROUND_TO_DAG mapping
 
   **Acceptance Criteria**:
-  - [ ] Outputs: accuracy, F1, AUC per fold
-  - [ ] Outputs: onset MAE, early detection rate, mean early days
-  - [ ] Aggregates metrics across all 44 folds
+  - [x] Outputs: accuracy, F1, AUC per fold
+  - [x] Outputs: onset MAE, early detection rate, mean early days
+  - [x] Aggregates metrics across all 44 folds
 
 ---
 
@@ -455,8 +455,8 @@ Implement stress detection model with modality gating for binary per-timestep cl
   - `scripts/slurm/train.sh` - existing SLURM script
 
   **Acceptance Criteria**:
-  - [ ] SLURM job runs on Mahti
-  - [ ] All 44 folds complete
+  - [x] SLURM job runs on Mahti
+  - [x] All 44 folds complete
 
 ---
 
@@ -492,7 +492,7 @@ python scripts/evaluate_stress.py --results_dir results/stress/checkpoints/
 ```
 
 ### Final Checklist
-- [ ] All new files created
-- [ ] Model trains without errors
-- [ ] Evaluation produces expected metrics
-- [ ] Modality gates can be extracted and visualized
+- [x] All new files created
+- [x] Model trains without errors
+- [x] Evaluation produces expected metrics
+- [x] Modality gates can be extracted and visualized
