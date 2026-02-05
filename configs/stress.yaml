@@ -1,0 +1,89 @@
+# =============================================================================
+# Stress Detection Configuration - Binary Per-Timestep Classification
+# =============================================================================
+
+model:
+  image_encoder: "facebook/dinov2-base"
+  freeze_encoder: true
+  encoder_output_dim: 768
+  
+  view_aggregation: "attention"
+  
+  modality:
+    image_dim: 768
+    fluor_dim: 94
+    env_dim: 5
+    vi_dim: 11
+    hidden_dim: 128        # All modalities projected to 128-dim
+    gate_hidden: 64        # Hidden dim for gating network
+  
+  temporal:
+    num_layers: 2
+    num_heads: 4
+    dim: 128               # CRITICAL: 128, not 256
+    ff_dim: 512
+    dropout: 0.1
+  
+  stress_head:
+    hidden_dim: 64
+
+training:
+  batch_size: 16
+  lr: 1.0e-4
+  weight_decay: 0.01
+  max_epochs: 100
+  patience: 20
+  scheduler: "cosine"
+  warmup_epochs: 5
+  gradient_clip: 1.0
+  
+  cv:
+    strategy: "logo"
+    n_folds: 44
+    seed: 42
+
+data:
+  image_size: 224
+  num_timepoints: 22
+  num_views: 4
+  feature_dir: "features/"
+  metadata_dir: "data/"
+  plant_metadata: "data/plant_metadata.csv"
+  timepoint_metadata: "data/timepoint_metadata.csv"
+  normalize: true
+  
+  # Raw data paths (copy from default.yaml)
+  raw:
+    img_side: "data/img/side_view/"
+    img_top: "data/img/top_view/"
+    obs: "data/00-Misc/FabaDr_Obs.xlsx"
+    date_index: "data/00-Misc/DateIndex.xlsx"
+    endpoint_fw_dw: "data/00-Misc/EndPoint_Raw_FW&DW.xlsx"
+    drought_impact: "data/SinglePoint Datasets/Drought_Impact(DAG).xlsx"
+    fluorescence: "data/TimeCourse Datasets/FCQ_FabaDr_Auto.xlsx"
+    fluorescence_reshaped: "data/TimeCourse Datasets/FCQ_FabaDr_Auto_Reshape.xlsx"
+    env_data: "data/TimeCourse Datasets/EnvData_FabaDr.xlsx"
+    veg_index: "data/TimeCourse Datasets/VegIndex_FabaDr_RGB2.xlsx"
+    digital_biomass: "data/TimeCourse Datasets/DigitalBiomass_FabaDr_Auto.xlsx"
+    digital_biomass_norm: "data/TimeCourse Datasets/DigitalBiomass_Norm_FabaDr_Auto.xlsx"
+    plant_height: "data/TimeCourse Datasets/PlantHeight_Norm_FabaDr_Auto.xlsx"
+    veg_index_rgb2: "data/TimeCourse Datasets/VegIndex_FabaDr_RGB2.xlsx"
+    veg_index_rgb: "data/TimeCourse Datasets/RGB-Vegetative_Indices.xlsx"
+    side_morpho: "data/TimeCourse Datasets/RGB1_SideView_FabaDr_Manual_Morpho.xlsx"
+    top_morpho: "data/TimeCourse Datasets/RGB2_TopView_FabaDr_Manual_Morpho.xlsx"
+    endpoint_corr: "data/EndPoint Datasets/EndPoint_CorrelationData-WithoutOutliers.xlsx"
+    endpoint_wue: "data/EndPoint Datasets/DigitalWUE_FabaDr_38DAG.xlsx"
+    endpoint_bio_wue: "data/EndPoint Datasets/BiologicalWUE_FW_DW_FabaDr_Auto.xlsx"
+
+logging:
+  wandb:
+    project: "faba-stress-detection"
+    entity: null
+    mode: "online"
+  save_dir: "results/stress/"
+  checkpoint_dir: "results/stress/checkpoints/"
+  log_every_n_steps: 10
+
+seed: 42
+device: "cuda"
+num_workers: 4

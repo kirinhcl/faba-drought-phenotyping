@@ -291,7 +291,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 6. Create `configs/stress.yaml` - Configuration
+- [x] 6. Create `configs/stress.yaml` - Configuration
 
   **What to do**:
   - Create new config for stress detection task
