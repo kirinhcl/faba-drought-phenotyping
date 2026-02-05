@@ -363,7 +363,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 7. Create `scripts/train_stress.py` - Training Script
+- [x] 7. Create `scripts/train_stress.py` - Training Script
 
   **What to do**:
   - Simplified training script for stress detection
