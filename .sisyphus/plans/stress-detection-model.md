@@ -180,7 +180,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 3. Create `src/training/stress_loss.py` - Stress Loss
+- [x] 3. Create `src/training/stress_loss.py` - Stress Loss
 
   **What to do**:
   - Create `StressLoss` class with BCEWithLogitsLoss
