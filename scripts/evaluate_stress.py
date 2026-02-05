@@ -100,7 +100,11 @@ def evaluate_fold(
     """Evaluate a single fold."""
     # Load model
     model = StressDetectionModel(cfg)
-    model.load_state_dict(torch.load(checkpoint_path / f"fold_{fold_id}" / "best_model.pt"))
+    model.load_state_dict(torch.load(
+        checkpoint_path / f"fold_{fold_id}" / "best_model_state.pt",
+        map_location=cfg.device,
+        weights_only=True
+    ))
     model.to(cfg.device)
     model.eval()
     
