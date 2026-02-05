@@ -1,6 +1,6 @@
 """DAG (Drought onset days After Germination) class definitions.
 
-Maps the 13 unique DAG values to class indices for classification.
+Maps the 14 unique DAG values to class indices for classification.
 """
 
 from __future__ import annotations
