@@ -229,7 +229,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 4. Modify `src/data/dataset.py` - Add Stress Labels
+- [x] 4. Modify `src/data/dataset.py` - Add Stress Labels
 
   **What to do**:
   - Add `stress_labels` tensor (T=22,) with 0/1 values

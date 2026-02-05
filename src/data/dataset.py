@@ -79,11 +79,13 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             dag_category: long - 0=Early, 1=Mid, 2=Late (-1 for WHC-80)
             fw_target: float - Fresh weight in grams (NaN if missing)
             dw_target: float - Dry weight in grams (NaN if missing)
-            trajectory_target: (T=22,) float32 - Digital biomass norm
-            trajectory_mask: (T=22,) bool - Valid trajectory points
-            plant_id: str
-            treatment: str - 'WHC-80' or 'WHC-30'
-            accession: str
+             trajectory_target: (T=22,) float32 - Digital biomass norm
+             trajectory_mask: (T=22,) bool - Valid trajectory points
+             stress_labels: (T=22,) long - Binary stress labels (0=not stressed, 1=stressed)
+             stress_mask: (T=22,) bool - Valid timesteps for stress prediction
+             plant_id: str
+             treatment: str - 'WHC-80' or 'WHC-30'
+             accession: str
     """
     
     def __init__(self, config_path_or_cfg: Union[str, DictConfig]) -> None:
@@ -238,6 +240,18 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         torch.nan_to_num_(environment, nan=0.0)
         torch.nan_to_num_(vi, nan=0.0)
         torch.nan_to_num_(trajectory_target, nan=0.0)
+        
+        # Generate stress labels (binary classification per timestep)
+        stress_labels = torch.zeros(T, dtype=torch.long)
+        stress_mask = image_mask.any(dim=-1) | fluor_mask  # valid if has image or fluor
+        
+        if treatment == 'WHC-30' and not np.isnan(dag_target):
+            threshold_dag = dag_target  # dag_drought_onset for this genotype
+            for t_idx, round_num in enumerate(range(2, 24)):
+                current_dag = ROUND_TO_DAG[round_num]
+                if current_dag >= threshold_dag:
+                    stress_labels[t_idx] = 1  # Stressed
+        # WHC-80: stress_labels remains all zeros (never stressed)
 
         return {
             'images': images,
@@ -254,6 +268,8 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             'dw_target': dw_target,
             'trajectory_target': trajectory_target,
             'trajectory_mask': trajectory_mask,
+            'stress_labels': stress_labels,
+            'stress_mask': stress_mask,
             'plant_id': plant_id,
             'treatment': treatment,
             'accession': accession,
