@@ -24,11 +24,13 @@ model:
     vi_dim: 11           # ExG, GREENESS, GLI, GREEN_STRENGHT, NGRVI, VARI, BG_RATIO, CHROMA_BASE, CHROMA_RATIO, CHROMA_DIFFERENCE, TGI
     hidden_dim: 128
     fused_dim: 256
+    equal_dim: true      # Project all modalities to same hidden_dim before fusion (25% each)
 
   heads:
     dag_regression: true
-    dag_classification: true   # 3-class: Early/Mid/Late
-    biomass_regression: true   # FW + DW
+    dag_classification: true        # 3-class: Early/Mid/Late
+    dag_fine_classification: true   # 13-class: unique DAG values
+    biomass_regression: true        # FW + DW
     trajectory: true
 
 training:
@@ -44,8 +46,13 @@ training:
   loss_weights:
     dag_reg: 1.0
     dag_cls: 1.0
+    dag_fine_cls: 1.0
     biomass: 1.0
     trajectory: 1.0
+
+  sampler:
+    grouped: true
+    genotypes_per_batch: 2
 
   cv:
     strategy: "logo"           # leave-genotype-out

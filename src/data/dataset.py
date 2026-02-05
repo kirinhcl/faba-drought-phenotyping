@@ -20,6 +20,7 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import Dataset
 
+from src.data.dag_classes import dag_to_class
 from src.utils.config import load_config
 
 
@@ -220,7 +221,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         # DAG category (Early=0, Mid=1, Late=2, WHC-80=-1)
         drought_cat = self.plant_metadata.at[plant_idx, 'drought_category']
         try:
-            is_valid_cat = drought_cat == drought_cat  # NaN != NaN, so this checks for non-NaN
+            is_valid_cat = drought_cat == drought_cat
         except Exception:
             is_valid_cat = False
         
@@ -229,6 +230,9 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             dag_category = cat_map.get(str(drought_cat), -1)
         else:
             dag_category = -1
+        
+        # DAG 13-class index (for fine-grained classification)
+        dag_class = dag_to_class(dag_target) if not np.isnan(dag_target) else -1
         
         torch.nan_to_num_(fluorescence, nan=0.0)
         torch.nan_to_num_(environment, nan=0.0)
@@ -245,6 +249,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             'temporal_positions': self.temporal_positions.clone(),
             'dag_target': dag_target,
             'dag_category': torch.tensor(dag_category, dtype=torch.long),
+            'dag_class': torch.tensor(dag_class, dtype=torch.long),
             'fw_target': fw_target,
             'dw_target': dw_target,
             'trajectory_target': trajectory_target,

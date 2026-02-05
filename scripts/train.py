@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader, Subset
 
 from src.data.collate import faba_collate_fn
 from src.data.dataset import FabaDroughtDataset
+from src.data.sampler import GenotypeSubsetSampler
 from src.model.model import FabaDroughtModel
 from src.training.cv import LogoCV
 from src.training.trainer import Trainer
@@ -33,6 +34,7 @@ def set_seed(seed: int) -> None:
 def train_fold(
     cfg: Any,
     dataset: Any,
+    plant_metadata: pd.DataFrame,
     fold_id: int,
     train_indices: npt.NDArray[np.int_],
     val_indices: npt.NDArray[np.int_],
@@ -40,35 +42,39 @@ def train_fold(
     checkpoint_dir: Path,
     resume_from: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Train a single fold.
-    
-    Args:
-        cfg: OmegaConf config
-        dataset: Full dataset
-        fold_id: Fold index
-        train_indices: Training indices
-        val_indices: Validation indices
-        test_indices: Test indices
-        checkpoint_dir: Directory for checkpoints
-        resume_from: Optional checkpoint path to resume from
-    
-    Returns:
-        Dict with metrics and predictions
-    """
-    # Create subsets
+    """Train a single fold."""
     train_dataset = Subset(dataset, train_indices.tolist())
     val_dataset = Subset(dataset, val_indices.tolist())
     test_dataset = Subset(dataset, test_indices.tolist())
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=cfg.training.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        collate_fn=faba_collate_fn,
-        pin_memory=True,
-    )
+    use_grouped_sampler = cfg.training.get("sampler", {}).get("grouped", False)
+    genotypes_per_batch = cfg.training.get("sampler", {}).get("genotypes_per_batch", 2)
+    
+    if use_grouped_sampler:
+        train_sampler = GenotypeSubsetSampler(
+            plant_metadata=plant_metadata,
+            subset_indices=train_indices.tolist(),
+            genotypes_per_batch=genotypes_per_batch,
+            shuffle=True,
+            seed=cfg.seed + fold_id,
+        )
+        train_loader = DataLoader(
+            dataset,
+            batch_sampler=train_sampler,
+            num_workers=cfg.num_workers,
+            collate_fn=faba_collate_fn,
+            pin_memory=True,
+        )
+    else:
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=cfg.training.batch_size,
+            shuffle=True,
+            num_workers=cfg.num_workers,
+            collate_fn=faba_collate_fn,
+            pin_memory=True,
+        )
+    
     val_loader = DataLoader(
         val_dataset,
         batch_size=cfg.training.batch_size,
@@ -257,6 +263,7 @@ def main() -> None:
         metrics = train_fold(
             cfg=cfg,
             dataset=dataset,
+            plant_metadata=plant_metadata,
             fold_id=fold_id,
             train_indices=train_indices,
             val_indices=val_indices,

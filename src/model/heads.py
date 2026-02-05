@@ -28,15 +28,27 @@ class DAGRegressionHead(nn.Module):
 
 
 class DAGClassificationHead(nn.Module):
-    """CLS -> MLP(256->128->3) for DAG classification."""
+    """CLS -> MLP for DAG classification (3-class: Early/Mid/Late)."""
 
-    def __init__(self, input_dim: int = 256, hidden_dim: int = 128) -> None:
+    def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 3) -> None:
         super().__init__()
-        self.mlp: nn.Sequential = _make_head(input_dim, hidden_dim, 3)
+        self.num_classes = num_classes
+        self.mlp: nn.Sequential = _make_head(input_dim, hidden_dim, num_classes)
 
     def forward(self, cls_embedding: Tensor) -> Tensor:
-        # cls_embedding: (B, dim)
-        return self.mlp(cls_embedding)  # (B, 3)
+        return self.mlp(cls_embedding)  # (B, num_classes)
+
+
+class DAGFineClassificationHead(nn.Module):
+    """CLS -> MLP for fine-grained DAG classification (13 unique DAG values)."""
+
+    def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 13) -> None:
+        super().__init__()
+        self.num_classes = num_classes
+        self.mlp: nn.Sequential = _make_head(input_dim, hidden_dim, num_classes)
+
+    def forward(self, cls_embedding: Tensor) -> Tensor:
+        return self.mlp(cls_embedding)  # (B, 13)
 
 
 class BiomassHead(nn.Module):

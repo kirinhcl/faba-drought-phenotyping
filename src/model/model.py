@@ -12,6 +12,7 @@ from .fusion import MultimodalFusion
 from .heads import (
     BiomassHead,
     DAGClassificationHead,
+    DAGFineClassificationHead,
     DAGRegressionHead,
     TrajectoryHead,
 )
@@ -51,6 +52,7 @@ class FabaDroughtModel(nn.Module):
             vi_dim=fusion_cfg.vi_dim,
             hidden_dim=fusion_cfg.hidden_dim,
             fused_dim=fusion_cfg.fused_dim,
+            equal_dim=fusion_cfg.get("equal_dim", True),
         )
         self.temporal: TemporalTransformer = TemporalTransformer(
             dim=temporal_cfg.dim,
@@ -65,6 +67,9 @@ class FabaDroughtModel(nn.Module):
         )
         self.dag_cls_head: Optional[DAGClassificationHead] = (
             DAGClassificationHead(temporal_cfg.dim) if heads_cfg.dag_classification else None
+        )
+        self.dag_fine_cls_head: Optional[DAGFineClassificationHead] = (
+            DAGFineClassificationHead(temporal_cfg.dim) if heads_cfg.get("dag_fine_classification", False) else None
         )
         self.biomass_head: Optional[BiomassHead] = (
             BiomassHead(temporal_cfg.dim) if heads_cfg.biomass_regression else None
@@ -137,6 +142,7 @@ class FabaDroughtModel(nn.Module):
         outputs: ModelOutput = {
             "dag_reg": self.dag_reg_head(cls_embedding) if self.dag_reg_head else None,
             "dag_cls": self.dag_cls_head(cls_embedding) if self.dag_cls_head else None,
+            "dag_fine_cls": self.dag_fine_cls_head(cls_embedding) if self.dag_fine_cls_head else None,
             "biomass": self.biomass_head(cls_embedding) if self.biomass_head else None,
             "trajectory": (
                 self.trajectory_head(temporal_tokens) if self.trajectory_head else None
