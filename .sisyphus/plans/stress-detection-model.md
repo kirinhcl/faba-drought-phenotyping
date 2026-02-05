@@ -130,7 +130,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 2. Create `src/model/stress_model.py` - Stress Detection Model
+- [x] 2. Create `src/model/stress_model.py` - Stress Detection Model
 
   **What to do**:
   - Create `StressHead`: temporal_tokens → MLP → (B, T) logits
