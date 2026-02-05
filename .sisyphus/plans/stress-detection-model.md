@@ -444,7 +444,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 9. Create SLURM script `scripts/slurm/train_stress.sh`
+- [x] 9. Create SLURM script `scripts/slurm/train_stress.sh`
 
   **What to do**:
   - Copy from train.sh, modify for stress task
