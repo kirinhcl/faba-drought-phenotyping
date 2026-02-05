@@ -1051,3 +1051,115 @@ These tasks are clearly documented with comprehensive resolution instructions fo
 ═══════════════════════════════════════════════════════════════════════════
 END OF ORCHESTRATION
 ═══════════════════════════════════════════════════════════════════════════
+
+## ═══════════════════════════════════════════════════════════════════════════
+## ADDITIONAL TOOLS CREATED (2026-02-05)
+## ═══════════════════════════════════════════════════════════════════════════
+
+### 🛠️ Helper Scripts
+
+To facilitate validation and analysis, created additional tools:
+
+#### 1. Environment Validation Script
+**File**: `scripts/validate_setup.py`
+**Purpose**: Pre-training environment validation
+**Features**:
+- ✓ Check all imports (PyTorch, NumPy, Pandas, OmegaConf, scikit-learn)
+- ✓ Verify all required files exist
+- ✓ Test model instantiation
+- ✓ Test dataset loading
+- ✓ Test loss computation
+- ✓ Check output directories
+- ✓ Returns exit code for CI/CD
+
+**Usage**:
+```bash
+python scripts/validate_setup.py
+# Exit code 0 = all checks passed
+# Exit code 1 = some checks failed
+```
+
+#### 2. Modality Gates Visualization Script
+**File**: `scripts/visualize_gates.py`
+**Purpose**: Analyze and visualize modality gate patterns
+**Features**:
+- ✓ Load gates from checkpoint NPY files
+- ✓ Plot mean gates over time with error bands
+- ✓ Generate heatmap with annotations
+- ✓ Show distribution histograms for each modality
+- ✓ Validate gates sum to 1.0
+
+**Usage**:
+```bash
+python scripts/visualize_gates.py \
+    --checkpoint_dir results/stress/checkpoints/ \
+    --fold 0 \
+    --output_dir results/stress/visualizations/
+```
+
+**Outputs**:
+- `gates_mean_fold0.png` - Line plot with error bands
+- `gates_heatmap_fold0.png` - Heatmap visualization
+- `gates_distribution_fold0.png` - Distribution histograms
+
+### 📊 Updated Workflow
+
+**Before Training**:
+```bash
+# 1. Validate environment
+python scripts/validate_setup.py
+
+# 2. If all checks pass, proceed with training
+python scripts/train_stress.py --config configs/stress.yaml --fold 0
+```
+
+**After Training**:
+```bash
+# 1. Evaluate metrics
+python scripts/evaluate_stress.py --results_dir results/stress/checkpoints/
+
+# 2. Visualize modality gates
+python scripts/visualize_gates.py \
+    --checkpoint_dir results/stress/checkpoints/ \
+    --fold 0
+```
+
+### 🎯 Benefits
+
+**For User**:
+- Quick environment validation before long training runs
+- Automated checks prevent common setup issues
+- Beautiful visualizations for paper figures
+- Easy analysis of modality importance patterns
+
+**For Debugging**:
+- Validation script identifies missing dependencies
+- Gate visualization reveals model behavior
+- Distribution plots show if gates are learning properly
+
+### 📈 Total Deliverables
+
+**Implementation** (11 files):
+1. src/model/gating.py
+2. src/model/stress_model.py
+3. src/training/stress_loss.py
+4. src/data/dataset.py (modified)
+5. src/data/collate.py (modified)
+6. configs/stress.yaml
+7. scripts/train_stress.py
+8. scripts/evaluate_stress.py
+9. scripts/slurm/train_stress.sh
+10. scripts/validate_setup.py ← NEW
+11. scripts/visualize_gates.py ← NEW
+
+**Documentation** (4 files):
+1. docs/STRESS_DETECTION.md
+2. .sisyphus/HANDOFF.md
+3. .sisyphus/notepads/faba-stress-refactor/learnings.md
+4. .sisyphus/plans/stress-detection-model.md
+
+**Total**: 15 files, 2,524+ lines of code, 1,200+ lines of documentation
+
+═══════════════════════════════════════════════════════════════════════════
+END OF ADDITIONAL TOOLS
+═══════════════════════════════════════════════════════════════════════════
