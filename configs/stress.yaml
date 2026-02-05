@@ -40,6 +40,7 @@ training:
   cv:
     strategy: "logo"
     n_folds: 44
+    stratify_by: "drought_category"
     seed: 42
 
 data:
