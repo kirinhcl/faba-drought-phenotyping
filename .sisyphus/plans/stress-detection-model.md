@@ -271,7 +271,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 5. Modify `src/data/collate.py` - Add Stress Fields
+- [x] 5. Modify `src/data/collate.py` - Add Stress Fields
 
   **What to do**:
   - Add `stress_labels` and `stress_mask` to batch collation

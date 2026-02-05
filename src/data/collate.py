@@ -29,11 +29,13 @@ def faba_collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
             dag_category: (B,) long
             fw_target: (B,) float32
             dw_target: (B,) float32
-            trajectory_target: (B, T=22) float32
-            trajectory_mask: (B, T=22) bool
-            plant_id: List[str]
-            treatment: List[str]
-            accession: List[str]
+             trajectory_target: (B, T=22) float32
+             trajectory_mask: (B, T=22) bool
+             stress_labels: (B, T=22) long
+             stress_mask: (B, T=22) bool
+             plant_id: List[str]
+             treatment: List[str]
+             accession: List[str]
     """
     # Stack fixed-size tensors
     result: Dict[str, Any] = {
@@ -49,9 +51,11 @@ def faba_collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         'dag_class': torch.stack([item['dag_class'] for item in batch]),
         'fw_target': torch.tensor([item['fw_target'] for item in batch], dtype=torch.float32),
         'dw_target': torch.tensor([item['dw_target'] for item in batch], dtype=torch.float32),
-        'trajectory_target': torch.stack([item['trajectory_target'] for item in batch]),
-        'trajectory_mask': torch.stack([item['trajectory_mask'] for item in batch]),
-    }
+         'trajectory_target': torch.stack([item['trajectory_target'] for item in batch]),
+         'trajectory_mask': torch.stack([item['trajectory_mask'] for item in batch]),
+         'stress_labels': torch.stack([item['stress_labels'] for item in batch]),
+         'stress_mask': torch.stack([item['stress_mask'] for item in batch]),
+     }
     
     # Collect string fields as lists
     result['plant_id'] = [item['plant_id'] for item in batch]
