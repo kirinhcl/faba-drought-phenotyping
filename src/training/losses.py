@@ -207,9 +207,10 @@ class MultiTaskLoss(nn.Module):
             if not isinstance(dag_category_value, Tensor):
                 raise TypeError("dag_category must be a Tensor")
             dag_category = dag_category_value.to(device).long()
-            if drought_mask.numel() > 0 and drought_mask.any() and len(accession_list) > 0:
+            valid_cls_mask = drought_mask & (dag_category >= 0)
+            if valid_cls_mask.numel() > 0 and valid_cls_mask.any() and len(accession_list) > 0:
                 agg_logits, agg_targets_cls = _aggregate_logits_by_genotype(
-                    dag_cls_pred, dag_category, accession_list, drought_mask
+                    dag_cls_pred, dag_category, accession_list, valid_cls_mask
                 )
                 if agg_logits.numel() > 0:
                     dag_cls_loss = F.cross_entropy(agg_logits, agg_targets_cls)
