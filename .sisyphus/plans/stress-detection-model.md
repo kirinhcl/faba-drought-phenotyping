@@ -387,7 +387,7 @@ Implement stress detection model with modality gating for binary per-timestep cl
 
 ---
 
-- [ ] 8. Create `scripts/evaluate_stress.py` - Evaluation Script
+- [x] 8. Create `scripts/evaluate_stress.py` - Evaluation Script
 
   **What to do**:
   - Compute per-timestep metrics: accuracy, precision, recall, F1, AUC
