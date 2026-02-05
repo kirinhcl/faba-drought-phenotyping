@@ -40,9 +40,9 @@ class DAGClassificationHead(nn.Module):
 
 
 class DAGFineClassificationHead(nn.Module):
-    """CLS -> MLP for fine-grained DAG classification (13 unique DAG values)."""
+    """CLS -> MLP for fine-grained DAG classification (14 unique DAG values)."""
 
-    def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 13) -> None:
+    def __init__(self, input_dim: int = 256, hidden_dim: int = 128, num_classes: int = 14) -> None:
         super().__init__()
         self.num_classes = num_classes
         self.mlp: nn.Sequential = _make_head(input_dim, hidden_dim, num_classes)
