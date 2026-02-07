@@ -114,7 +114,8 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         # Open HDF5 file handle (keep open for performance)
         self.h5 = h5py.File(feature_path, 'r')
         
-        # Load fluorescence data
+        # Load fluorescence data (optionally z-score normalized)
+        self.fluor_normalize = getattr(self.cfg.data, 'fluor_normalize', False)
         self.fluor_data, self.fluor_dim = self._load_fluorescence()
         
         # Load environment data (global per round)
@@ -278,6 +279,10 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
     def _load_fluorescence(self) -> tuple[Dict[str, Dict[int, npt.NDArray[np.float32]]], int]:
         """Load fluorescence data from Excel file.
         
+        When self.fluor_normalize is True, applies per-feature z-score
+        normalization (subtract mean, divide by std) computed across all
+        plants and timepoints.
+        
         Returns:
             (fluor_data, fluor_dim) where:
             - fluor_data: {plant_id: {round_order: np.array(fluor_dim,)}}
@@ -298,6 +303,15 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
         
         fluor_dim = len(fluor_cols)
         
+        # Compute per-feature statistics for z-score normalization
+        if self.fluor_normalize:
+            fluor_matrix = df[fluor_cols].values.astype(np.float32)  # (N_rows, fluor_dim)
+            # Use nanmean/nanstd to ignore NaN before normalizing
+            self.fluor_mean = np.nanmean(fluor_matrix, axis=0)  # (fluor_dim,)
+            self.fluor_std = np.nanstd(fluor_matrix, axis=0)    # (fluor_dim,)
+            # Avoid division by zero for constant features
+            self.fluor_std[self.fluor_std < 1e-8] = 1.0
+        
         # Build nested dict: {plant_id: {round: array}}
         fluor_data = {}
         for _, row in df.iterrows():
@@ -305,6 +319,10 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             round_order = int(row['Round Order'])
             fluor_values = np.array(row[fluor_cols].tolist(), dtype=np.float32)
             np.nan_to_num(fluor_values, copy=False, nan=0.0)
+            
+            # Apply z-score normalization
+            if self.fluor_normalize:
+                fluor_values = (fluor_values - self.fluor_mean) / self.fluor_std
             
             if plant_id not in fluor_data:
                 fluor_data[plant_id] = {}

@@ -94,7 +94,9 @@ def train_fold(
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = StressDetectionModel(cfg)
     model.to(device)
-    criterion = StressLoss()
+    # pos_weight: None = auto (num_neg/num_pos per batch), or fixed float from config
+    pw = getattr(cfg.training, 'pos_weight', None)
+    criterion = StressLoss(pos_weight=pw)
     
     # Create optimizer
     optimizer = torch.optim.AdamW(
