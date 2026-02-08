@@ -1,13 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# Launch ALL ablation experiments: 11 ablations × 3 seeds = 33 SLURM array jobs
-# Each array job has 44 tasks (one per fold), with max 10 concurrent per job.
+# Launch ALL ablation experiments sequentially
+# Respects MaxSubmitJobs=4 by waiting for each ablation to complete.
 #
-# Total: 33 jobs × 44 folds = 1,452 training runs
-# Estimated wall time: ~1h per job (early stopping at ~30-50 epochs)
-# Estimated GPU-hours: ~1,452 × 0.5h = ~726 GPU-hours
+# Strategy: Submit 3 seeds for one ablation (3 array jobs), wait for all to
+# finish, then submit the next ablation's 3 seeds. Each ablation takes ~1h.
+#
+# Total: 11 ablations × 3 seeds × 44 folds = 1,452 training runs
+# Total sequential time: ~11 hours (run in tmux/screen)
 #
 # Usage:
+#   # Run in tmux/screen so it persists after logout:
+#   tmux new -s ablation
 #   bash scripts/slurm/launch_all_ablations.sh
 # =============================================================================
 
@@ -18,7 +22,6 @@ TRAIN_SCRIPT="${SCRIPT_DIR}/train_ablation.sh"
 
 SEEDS=(42 123 456)
 
-# All ablation configs
 ABLATIONS=(
     # A1: Single modality
     "image_only"
@@ -38,33 +41,62 @@ ABLATIONS=(
     "concat_fusion"
 )
 
-echo "=== Launching ablation experiments ==="
+wait_for_jobs() {
+    # Wait until all jobs with given IDs are finished
+    local job_ids=("$@")
+    echo "  Waiting for ${#job_ids[@]} jobs to complete..."
+    while true; do
+        local still_running=0
+        for jid in "${job_ids[@]}"; do
+            # Check if job is still in queue (PENDING, RUNNING, etc.)
+            if squeue -j "${jid}" -h 2>/dev/null | grep -q "${jid}"; then
+                still_running=$((still_running + 1))
+            fi
+        done
+        if [ "${still_running}" -eq 0 ]; then
+            break
+        fi
+        echo "  ... ${still_running} jobs still active ($(date +%H:%M:%S))"
+        sleep 60
+    done
+    echo "  All jobs complete."
+}
+
+echo "=== Launching ablation experiments (sequential per ablation) ==="
 echo "Ablations: ${#ABLATIONS[@]}"
 echo "Seeds: ${SEEDS[*]}"
 echo "Total jobs: $(( ${#ABLATIONS[@]} * ${#SEEDS[@]} ))"
+echo "Start: $(date)"
 echo ""
 
-JOB_COUNT=0
+TOTAL_DONE=0
 
 for ABLATION in "${ABLATIONS[@]}"; do
     CONFIG="configs/ablation/stress/${ABLATION}.yaml"
+    echo "=== [$(( TOTAL_DONE + 1 ))/${#ABLATIONS[@]}] ${ABLATION} ==="
 
+    JOB_IDS=()
     for SEED in "${SEEDS[@]}"; do
         JOB_NAME="abl-${ABLATION}-s${SEED}"
+        echo "  Submitting: ${JOB_NAME}"
 
-        echo "Submitting: ${JOB_NAME} (config=${CONFIG}, seed=${SEED})"
-
-        sbatch \
+        JOB_ID=$(sbatch --parsable \
             --job-name="${JOB_NAME}" \
             "${TRAIN_SCRIPT}" \
             "${CONFIG}" \
-            "${SEED}"
+            "${SEED}")
 
-        JOB_COUNT=$((JOB_COUNT + 1))
+        JOB_IDS+=("${JOB_ID}")
+        echo "  → Job ${JOB_ID}"
     done
+
+    # Wait for all 3 seeds to finish before submitting next ablation
+    wait_for_jobs "${JOB_IDS[@]}"
+
+    TOTAL_DONE=$((TOTAL_DONE + 1))
+    echo ""
 done
 
-echo ""
-echo "=== Submitted ${JOB_COUNT} array jobs ==="
-echo "Monitor with: squeue -u \$USER"
-echo "After completion, run: bash scripts/slurm/evaluate_all_ablations.sh"
+echo "=== All ${TOTAL_DONE} ablations complete ==="
+echo "End: $(date)"
+echo "Run evaluation: sbatch scripts/slurm/evaluate_all_ablations.sh"
