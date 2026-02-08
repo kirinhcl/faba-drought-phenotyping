@@ -181,21 +181,39 @@ def parse_seed_arg(seeds_arg: str) -> List[str]:
 
 def detect_seed_dirs(results_dir: Path, seeds_arg: str) -> Dict[str, Path]:
     seed_dirs = sorted(results_dir.glob("seed_*"))
-    if not seed_dirs:
+    # Check if there are also direct fold dirs (seed not specified, e.g. original v3)
+    has_direct_folds = any(results_dir.glob("fold_*"))
+
+    if not seed_dirs and not has_direct_folds:
         return {"default": results_dir}
 
-    available = {seed_dir.name: seed_dir for seed_dir in seed_dirs}
-    desired = [f"seed_{seed}" for seed in parse_seed_arg(seeds_arg)]
-    selected = [seed for seed in desired if seed in available]
+    available: Dict[str, Path] = {}
+    # Direct fold dirs treated as "default" seed
+    if has_direct_folds:
+        available["default"] = results_dir
+    for seed_dir in seed_dirs:
+        available[seed_dir.name] = seed_dir
 
-    if not selected:
+    desired_seeds = parse_seed_arg(seeds_arg)
+    desired_keys: List[str] = []
+    for seed in desired_seeds:
+        if f"seed_{seed}" in available:
+            desired_keys.append(f"seed_{seed}")
+        elif seed == "42" and "default" in available:
+            # seed_42 requested but results are in direct fold dirs (no seed subdir)
+            desired_keys.append("default")
+    # Also include "default" if present and no specific seeds matched it
+    if "default" in available and "default" not in desired_keys:
+        desired_keys.insert(0, "default")
+
+    if not desired_keys:
         return available
 
-    missing = [seed for seed in desired if seed not in available]
+    missing = [f"seed_{s}" for s in desired_seeds if f"seed_{s}" not in available and not (s == "42" and "default" in available)]
     for seed in missing:
         print(f"Warning: requested {seed} not found in {results_dir}")
 
-    return {seed: available[seed] for seed in selected}
+    return {k: available[k] for k in desired_keys if k in available}
 
 
 def infer_ablation_name(cfg: Any, results_dir: Path) -> str:
