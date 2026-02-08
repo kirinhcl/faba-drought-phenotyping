@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from omegaconf import DictConfig
+import torch
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor, nn
 
 from .encoder import ViewAggregation
@@ -55,6 +56,27 @@ class StressDetectionModel(nn.Module):
         super().__init__()
         cfg = model_config.model if "model" in model_config else model_config
 
+        self.enabled_modalities: list[str] = OmegaConf.select(
+            cfg,
+            "ablation.enabled_modalities",
+            default=["image", "fluor", "env", "vi"],
+        )
+        self.fusion_mode: str = OmegaConf.select(
+            cfg,
+            "ablation.fusion_mode",
+            default="gating",
+        )
+        self.temporal_mode: str = OmegaConf.select(
+            cfg,
+            "ablation.temporal_mode",
+            default="transformer",
+        )
+        self.causal_mask: bool = OmegaConf.select(
+            cfg,
+            "ablation.causal_mask",
+            default=False,
+        )
+
         # View aggregation: (B, T, V=4, 768) → (B, T, 768)
         self.view_agg: ViewAggregation = ViewAggregation(cfg.encoder_output_dim)
 
@@ -81,7 +103,26 @@ class StressDetectionModel(nn.Module):
             num_heads=cfg.temporal.num_heads,
             ff_dim=cfg.temporal.ff_dim,
             dropout=cfg.temporal.dropout,
+            causal=self.causal_mask,
         )
+
+        self.concat_fusion: nn.Module | None = None
+        if self.fusion_mode == "concat":
+            self.concat_fusion = nn.Sequential(
+                nn.Linear(cfg.modality.hidden_dim * 4, cfg.modality.hidden_dim * 2),
+                nn.ReLU(),
+                nn.Dropout(0.1),
+                nn.Linear(cfg.modality.hidden_dim * 2, cfg.modality.hidden_dim),
+            )
+
+        self.temporal_mlp: nn.Module | None = None
+        if self.temporal_mode == "mlp":
+            self.temporal_mlp = nn.Sequential(
+                nn.Linear(cfg.temporal.dim, cfg.temporal.dim * 4),
+                nn.ReLU(),
+                nn.Dropout(0.1),
+                nn.Linear(cfg.temporal.dim * 4, cfg.temporal.dim),
+            )
 
         # Stress head: (B, T, 128) → (B, T) stress logits
         self.stress_head: StressHead = StressHead(
@@ -128,15 +169,37 @@ class StressDetectionModel(nn.Module):
             fluor_mask,
         )  # List of 4x (B, T, 128)
 
+        modality_names = ["image", "fluor", "env", "vi"]
+        for i, name in enumerate(modality_names):
+            if name not in self.enabled_modalities:
+                modality_features[i] = torch.zeros_like(modality_features[i])
+
         # 3. Modality gating: adaptive fusion with learned weights
-        fused, gates = self.modality_gating(modality_features)  # (B, T, 128), (B, T, 4)
+        if self.fusion_mode == "concat":
+            concat = torch.cat(modality_features, dim=-1)  # (B, T, 512)
+            if self.concat_fusion is None:
+                raise RuntimeError("Concat fusion requested but module not initialized.")
+            fused = self.concat_fusion(concat)  # (B, T, 128)
+            batch_size, timesteps = fused.shape[0], fused.shape[1]
+            gates = torch.ones(batch_size, timesteps, 4, device=fused.device) / 4
+        else:
+            fused, gates = self.modality_gating(modality_features)  # (B, T, 128), (B, T, 4)
 
         # 4. Temporal transformer: reason across timesteps
         temporal_positions = batch["temporal_positions"]  # (B, T)
         active_mask = image_active | fluor_mask  # (B, T)
-        _, temporal_tokens, _ = self.temporal(
-            fused, temporal_positions, active_mask
-        )  # (B, T, 128)
+        if self.temporal_mode == "transformer":
+            _, temporal_tokens, _ = self.temporal(
+                fused, temporal_positions, active_mask
+            )  # (B, T, 128)
+        elif self.temporal_mode == "mlp":
+            if self.temporal_mlp is None:
+                raise RuntimeError("Temporal MLP requested but module not initialized.")
+            temporal_tokens = self.temporal_mlp(fused)  # (B, T, 128)
+        elif self.temporal_mode == "none":
+            temporal_tokens = fused
+        else:
+            raise ValueError(f"Unknown temporal_mode: {self.temporal_mode}")
 
         # 5. Stress head: predict per-timestep stress
         stress_logits = self.stress_head(temporal_tokens)  # (B, T)
