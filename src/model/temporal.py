@@ -81,10 +81,12 @@ class TemporalTransformer(nn.Module):
         num_heads: int = 4,
         ff_dim: int = 1024,
         dropout: float = 0.1,
+        causal: bool = False,
     ) -> None:
         super().__init__()
         self.dim: int = dim
         self.cls_token: nn.Parameter = nn.Parameter(torch.zeros(1, 1, dim))
+        self.causal: bool = causal
 
         encoder_layer = TransformerEncoderLayerWithWeights(
             d_model=dim,
@@ -138,7 +140,22 @@ class TemporalTransformer(nn.Module):
         active_mask_with_cls = torch.cat([cls_active, active_mask], dim=1)  # (B, T+1)
         padding_mask = ~active_mask_with_cls  # True indicates padding
 
-        encoded = self.encoder(x, src_key_padding_mask=padding_mask)  # (B, T+1, dim)
+        attn_mask = None
+        if self.causal:
+            seq_len = x.shape[1]
+            causal_mask = torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool)
+            causal_mask[0, :] = False
+            for i in range(1, seq_len):
+                causal_mask[i, 0] = False
+                causal_mask[i, 1 : i + 1] = False
+            attn_mask = torch.zeros(seq_len, seq_len, device=x.device)
+            attn_mask.masked_fill_(causal_mask, float("-inf"))
+
+        encoded = self.encoder(
+            x,
+            mask=attn_mask,
+            src_key_padding_mask=padding_mask,
+        )  # (B, T+1, dim)
 
         cls_embedding = encoded[:, 0, :]  # (B, dim)
         temporal_tokens = encoded[:, 1:, :]  # (B, T, dim)

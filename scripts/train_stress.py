@@ -182,7 +182,7 @@ def train_fold(
             }
             
             # Forward pass with mixed precision
-            with torch.amp.autocast('cuda', dtype=amp_dtype):
+            with torch.autocast('cuda', dtype=amp_dtype):
                 predictions = model(batch)
                 loss, loss_dict = criterion(predictions, batch)
             
@@ -226,7 +226,7 @@ def train_fold(
                     for k, v in batch.items()
                 }
                 
-                with torch.amp.autocast('cuda', dtype=amp_dtype):
+                with torch.autocast('cuda', dtype=amp_dtype):
                     predictions = model(batch)
                     loss, loss_dict = criterion(predictions, batch)
                 
@@ -385,6 +385,12 @@ def main() -> None:
         default=None,
         help='Override feature directory (e.g., for local SSD on HPC)',
     )
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=None,
+        help='Override random seed (for multi-seed runs)',
+    )
     
     args = parser.parse_args()
     
@@ -397,6 +403,9 @@ def main() -> None:
     # Override feature dir if specified
     if args.feature_dir:
         cfg.data.feature_dir = args.feature_dir
+
+    if args.seed is not None:
+        cfg.seed = args.seed
     
     # Set seed
     set_seed(cfg.seed)
@@ -406,6 +415,8 @@ def main() -> None:
         checkpoint_dir = Path(args.checkpoint_dir)
     else:
         checkpoint_dir = Path(cfg.logging.checkpoint_dir)
+    if args.seed is not None:
+        checkpoint_dir = checkpoint_dir / f"seed_{args.seed}"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     
     # Create dataset
