@@ -407,7 +407,7 @@ Critical Path: Task 1 → Tasks 2,3,4 → Task 5
 
 ---
 
-- [ ] 5. Integrate Figures into Paper and Update Text
+- [x] 5. Integrate Figures into Paper and Update Text
 
   **What to do**:
   - Add `\begin{figure*}` blocks for Fig 6, 7, 8 in `paper/main.tex`
