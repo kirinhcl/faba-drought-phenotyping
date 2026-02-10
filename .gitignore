@@ -19,7 +19,9 @@ features/*.h5
 
 # Results & checkpoints
 results/
-!results/.gitkeep
+
+# Paper
+paper/
 
 # Python
 __pycache__/
