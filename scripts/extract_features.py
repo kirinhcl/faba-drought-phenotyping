@@ -183,6 +183,38 @@ class BioCLIPBackbone(nn.Module):
             self.hook_handle.remove()
 
 
+class BioCLIP2Backbone(nn.Module):
+    """BioCLIP 2 (ViT-L/14) wrapper that extracts 768-dim CLS token via encode_image()."""
+    
+    def __init__(self, device: str):
+        super().__init__()
+        import open_clip
+        
+        self.model, _, self.preprocess_fn = open_clip.create_model_and_transforms(
+            'hf-hub:imageomics/bioclip-2'
+        )
+        self.model = self.model.to(device)
+        self.model.eval()
+        self.device = device
+    
+    def preprocess(self, img: Image.Image) -> torch.Tensor:
+        return self.preprocess_fn(img)
+    
+    @torch.no_grad()
+    def extract(self, batch: torch.Tensor) -> tuple[np.ndarray, None]:
+        """Returns (cls_features, None) as numpy array.
+        
+        Uses encode_image() to get 768-dim post-projection features.
+        BioCLIP 2 is ViT-L/14 (transformer width=1024), so ln_post hook
+        would give 1024-dim. The CLIP projection layer reduces to 768-dim.
+        """
+        batch = batch.to(self.device)
+        cls_tokens = self.model.encode_image(batch)
+        cls_tokens = cls_tokens.cpu().numpy()
+        assert cls_tokens.shape[-1] == 768, f"Expected 768-dim, got {cls_tokens.shape[-1]}"
+        return cls_tokens, None
+
+
 def create_backbone(name: str, device: str) -> nn.Module:
     if name == 'dinov2':
         return DINOv2Backbone(device)
@@ -190,6 +222,8 @@ def create_backbone(name: str, device: str) -> nn.Module:
         return CLIPBackbone(device)
     elif name == 'bioclip':
         return BioCLIPBackbone(device)
+    elif name == 'bioclip2':
+        return BioCLIP2Backbone(device)
     else:
         raise ValueError(f"Unknown backbone: {name}")
 
@@ -380,7 +414,7 @@ def main():
         '--backbone',
         type=str,
         required=True,
-        choices=['dinov2', 'clip', 'bioclip'],
+        choices=['dinov2', 'clip', 'bioclip', 'bioclip2'],
         help='Backbone model to use'
     )
     parser.add_argument(

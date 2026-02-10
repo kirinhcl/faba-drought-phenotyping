@@ -107,6 +107,7 @@ class FabaDroughtDataset(Dataset[Dict[str, Any]]):
             "facebook/dinov2-base": "dinov2_features.h5",
             "openai/clip-vit-base-patch16": "clip_features.h5",
             "imageomics/bioclip": "bioclip_features.h5",
+            "imageomics/bioclip-2": "bioclip2_features.h5",
         }
         feature_file = encoder_to_file[self.cfg.model.image_encoder]
         feature_path = Path(self.cfg.data.feature_dir) / feature_file
