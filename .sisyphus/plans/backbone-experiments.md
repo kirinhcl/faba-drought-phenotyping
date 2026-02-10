@@ -1,5 +1,9 @@
 # Backbone Comparison Experiments (CLIP, BioCLIP, BioCLIP 2)
 
+**STATUS: BLOCKED - LOCAL WORK COMPLETE**  
+**Executable Tasks:** 3/3 ✅ | **Blocked Tasks:** 4/7 ⏸️ (Require Mahti SSH)  
+**Commits:** f9dc7ac (code), 647d48e (docs)
+
 ## TL;DR
 
 > **Quick Summary**: Add CLIP, BioCLIP, and BioCLIP 2 as alternative vision backbone experiments using the stress_v3 model (StressDetectionModel), to test whether domain-specific or different pre-training improves over DINOv2 — especially given that the "Drop Image" ablation (F1=0.662) outperformed the full model (F1=0.634).
