@@ -49,7 +49,7 @@ venv/
 wandb/
 
 # Sisyphus working state
-.sisyphus/boulder.json
+.sisyphus/
 
 # OS
 Thumbs.db
