@@ -2,11 +2,11 @@
 # Distillation Config — RGB-only student trained via LUPI from multimodal teacher
 # =============================================================================
 # Student: Image-only (ablation.enabled_modalities: [image])
-# Teacher: Full multimodal model (trained with stress_v3.yaml)
+# Teacher: Full multimodal CLIP model (trained with ablation/stress/clip_backbone.yaml)
 # Loss: StressDistillationLoss (task + logit KD + token MSE)
 
 model:
-  image_encoder: "facebook/dinov2-base"
+  image_encoder: "openai/clip-vit-base-patch16"
   freeze_encoder: true
   encoder_output_dim: 768
 
@@ -37,7 +37,8 @@ model:
     causal_mask: false
 
 distillation:
-  teacher_checkpoint_dir: "results/stress_v3/checkpoints"
+  teacher_config: "configs/ablation/stress/clip_backbone.yaml"
+  teacher_checkpoint_dir: "results/ablation/clip_backbone/checkpoints/seed_42"
   alpha_start: 0.7
   alpha_end: 0.3
   beta: 0.5

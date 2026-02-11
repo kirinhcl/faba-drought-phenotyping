@@ -96,7 +96,8 @@ def train_fold(
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Load teacher (frozen, full modality)
-    teacher_cfg = load_config('configs/stress_v3.yaml')  # Full modality config
+    teacher_config_path = getattr(cfg.distillation, 'teacher_config', 'configs/stress_v3.yaml')
+    teacher_cfg = load_config(teacher_config_path)
     teacher = StressDetectionModel(teacher_cfg)
     teacher.load_state_dict(torch.load(teacher_checkpoint_path, map_location=device, weights_only=True))
     teacher.to(device)
