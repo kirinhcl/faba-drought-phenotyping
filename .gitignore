@@ -14,8 +14,14 @@ data/00-Misc/
 !data/timepoint_metadata.csv
 !data/DATA_DESCRIPTION.md
 
-# Features (HDF5, will be huge)
-features/*.h5
+# Features
+features/
+
+# Docs
+docs/
+
+# SLURM scripts
+scripts/slurm/
 
 # Results & checkpoints
 results/
