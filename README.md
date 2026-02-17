@@ -36,10 +36,6 @@ scripts/
   extract_features.py         # CLIP feature extraction
   analyze_*.py                # Analysis (attention, fluorescence, presymptomatic, ranking)
   generate_fig2.py            # Figure 2 generation
-paper/
-  main.tex                    # Manuscript (Elsevier CAS double-column)
-  references.bib              # Bibliography
-  figures/                    # fig1.pdf - fig9.pdf
 ```
 
 ## Installation
