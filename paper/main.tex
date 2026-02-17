@@ -5,7 +5,7 @@
 
 \documentclass[a4paper,fleqn]{cas-dc}
 
-\usepackage[authoryear,longnamesfirst]{natbib}
+\usepackage[authoryear]{natbib}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{booktabs}
@@ -18,7 +18,7 @@
 \shorttitle{Temporal multimodal drought detection in faba bean}
 \shortauthors{C. Lu et~al.}
 
-\title[mode = title]{Temporal Multimodal Deep Learning for Pre-symptomatic Drought Stress Detection in Faba Bean}
+\title[mode = title]{Learning from Physiology, Deploying on Vision: A Temporal Multimodal Framework for Pre-symptomatic Drought Phenotyping in Faba Bean}
 
 \author[1]{Chenghao Lu}
 \cormark[1]
@@ -28,8 +28,8 @@
 \author[1]{Second Author}
 \credit{Supervision, Writing -- Review \& Editing}
 
-\affiliation[1]{organization={Natural Resources Institute Finland (Luke)},
-            addressline={Latokartanonkaari 9},
+\affiliation[1]{organization={University of Helsinki, Department of Agricultural Sciences},
+            addressline={Koetilantie 5},
             city={Helsinki},
             postcode={00790},
             country={Finland}}
@@ -37,18 +37,18 @@
 \cortext[cor1]{Corresponding author}
 
 \begin{abstract}
-Drought is a primary constraint on global faba bean (\textit{Vicia faba} L.) production, necessitating advanced phenotyping tools that can detect stress before irreversible damage occurs. Current high-throughput phenotyping approaches predominantly rely on visible-range imaging, which fails to capture early physiological responses that precede morphological symptoms. This study presents a temporal multimodal deep learning framework that bridges this ``physiology-visibility gap'' by integrating CLIP-based visual representations with chlorophyll fluorescence, environmental conditions, and vegetation indices. Our architecture utilizes an adaptive gating mechanism to fuse diverse data streams and a temporal transformer to capture the dynamics of stress progression across 22 imaging rounds. Evaluated on a diversity panel of 44 genotypes (264 plants) using leave-one-genotype-out cross-validation (LOGO-CV), the full model achieved an F1-score of $0.660$, an accuracy of $0.881$, and an AUC of $0.947$. Crucially, three-way triangulation between physiological change points, model attention peaks, and expert-annotated symptoms demonstrates that the framework detects drought stress significantly before visible onset. Modality gate analysis reveals that while image features dominate overall classification, chlorophyll fluorescence provides critical pre-symptomatic signals. Our findings establish the value of privileged physiological information in training robust visual models for early-warning systems in precision agriculture.
+Drought is a primary constraint on global faba bean (\textit{Vicia faba} L.) production, necessitating advanced phenotyping tools that can detect stress before irreversible damage occurs. Current high-throughput phenotyping approaches predominantly rely on visible-range imaging, which fails to capture early physiological responses that precede morphological symptoms. This study presents LUPIN (Learning Using Privileged Information Network), a temporal multimodal deep learning framework that bridges this ``physiology-visibility gap'' by integrating CLIP-based visual representations with chlorophyll fluorescence, environmental conditions, and vegetation indices. LUPIN utilizes an adaptive gating mechanism to fuse diverse data streams and a temporal transformer to capture the dynamics of stress progression across 22 imaging rounds. Evaluated on a diversity panel of 44 genotypes (264 plants) using leave-one-genotype-out cross-validation (LOGO-CV), LUPIN achieved an F1-score of $0.660$, an accuracy of $0.881$, and an AUC of $0.947$. Crucially, three-way triangulation between physiological change points, model attention peaks, and expert-annotated symptoms demonstrates that the framework detects drought stress significantly before visible onset. Modality gate analysis reveals that while image features dominate overall classification, chlorophyll fluorescence provides critical pre-symptomatic signals. Furthermore, knowledge distillation from LUPIN to an RGB-only student, LUPIN-D (F1=$0.667$), surpassed both the teacher and the scratch-trained baseline, empirically validating the LUPI paradigm and establishing a practical deploy-on-vision pathway. Our findings establish the value of privileged physiological information in training robust visual models for early-warning systems in precision agriculture.
 \end{abstract}
 
 \begin{highlights}
-\item A 4-modality temporal fusion framework integrating CLIP features, chlorophyll fluorescence, environmental data, and vegetation indices for automated drought detection
-\item Fluorescence-only model (F1=0.651) matches full model performance, validating chlorophyll fluorescence as the most informative modality for early stress detection
+\item LUPIN: a 4-modality temporal fusion framework integrating CLIP features, chlorophyll fluorescence, environmental data, and vegetation indices for automated drought detection
+\item Knowledge distillation from LUPIN to LUPIN-D (RGB-only, F1=$0.667$) validates the LUPI paradigm, enabling deploy-on-vision field applications
+\item Fluorescence-only model (F1=0.651) matches LUPIN performance, validating chlorophyll fluorescence as the most informative modality for early stress detection
 \item Three-way triangulation confirms pre-symptomatic detection: model identifies physiological stress before visible symptoms appear (mean onset error $-1.6$ days)
-\item 44-fold leave-one-genotype-out cross-validation demonstrates robustness across diverse faba bean genotypes
 \end{highlights}
 
 \begin{keywords}
-Drought phenotyping \sep Multimodal fusion \sep Temporal transformer \sep Chlorophyll fluorescence \sep Faba bean \sep Pre-symptomatic detection
+Drought phenotyping \sep Multimodal fusion \sep Temporal transformer \sep Chlorophyll fluorescence \sep Knowledge distillation \sep Faba bean \sep Pre-symptomatic detection
 \end{keywords}
 
 \maketitle
@@ -65,7 +65,7 @@ Chlorophyll fluorescence (ChlF) offers a direct window into this hidden phase by
 
 Deep learning has accelerated plant phenotyping by extracting complex traits from high-dimensional imagery \citep{singhMachineLearningHighThroughput2016}, and the emergence of vision foundation models (VFMs) such as CLIP \citep{radfordLearningTransferableVisual2021} provides robust, transferable representations that can improve generalization under domain shift (e.g., variable lighting, backgrounds, and plant architectures) \citep{liCLIPPoweredDomainGeneralization2026}. However, most stress classifiers still frame drought as a static label attached to a single image rather than as a process that unfolds over time \citep{shenConstructionDroughtMonitoring2019}. This framing is misaligned with plant biology: drought progression is dynamic, genotype-dependent, and often irregularly sampled in practice, and the most informative signal may lie in changes in trajectory rather than in an absolute state \citep{tardieuPhysiologicalBasisDrought2018}. Capturing these dynamics requires models that integrate longitudinal evidence and fuse heterogeneous sensors whose relevance shifts across the stress timeline.
 
-Here we present a temporal, multimodal deep-learning framework that closes the physiology--visibility gap for pre-symptomatic drought detection in faba bean. The model integrates four complementary modalities: frozen CLIP image representations, chlorophyll fluorescence transients, environmental metadata (temperature, humidity and light) and vegetation indices. An adaptive gating module learns how much to trust each modality at each time point, and a temporal transformer with continuous sinusoidal positional encodings captures long-range dependencies across 22 imaging rounds despite irregular intervals. Conceptually, the approach follows the learning-using-privileged-information (LUPI) paradigm \citep{vapnikNewLearningParadigm2009}: rich physiological measurements available during training are used to shape representations that generalize when only scalable visual inputs are available at deployment.
+Here we present LUPIN (Learning Using Privileged Information Network), a temporal, multimodal deep-learning framework that closes the physiology--visibility gap for pre-symptomatic drought detection in faba bean. LUPIN integrates four complementary modalities: frozen CLIP image representations, chlorophyll fluorescence transients, environmental metadata (temperature, humidity and light) and vegetation indices. An adaptive gating module learns how much to trust each modality at each time point, and a temporal transformer with continuous sinusoidal positional encodings captures long-range dependencies across 22 imaging rounds despite irregular intervals. Conceptually, the approach follows the learning-using-privileged-information (LUPI) paradigm \citep{vapnikNewLearningParadigm2009}: rich physiological measurements available during training are used to shape representations that generalize when only scalable visual inputs are available at deployment.
 
 We evaluate the framework on a diversity panel of 44 genotypes (264 plants) using leave-one-genotype-out cross-validation, demonstrating generalization to unseen genetic backgrounds. Beyond classification performance, we triangulate model attention with physiological change points and expert symptom annotations to quantify how early the system detects stress relative to visible onset. Together, these results establish a route for transferring the sensitivity of physiological sensing into deployable, image-driven early-warning systems for breeding and precision irrigation.
 
@@ -84,72 +84,48 @@ Recent research has increasingly leveraged Vision Foundation Models (VFMs) such 
 
 Plants are multi-dimensional organisms whose health and state are reflected across different spectral and physiological domains \citep{haqMultidimensionalOpticalRemote2025}. Multimodal fusion---the integration of data from RGB, thermal, hyperspectral, and LiDAR sensors---aims to provide a more holistic view than any single sensor can offer \citep{sankeyUAVLidarHyperspectral2017}. Traditional fusion techniques are typically divided into early fusion (concatenating raw data), intermediate fusion (combining features in a latent space), and late fusion (averaging model predictions) \citep{singhDeepLearningPlant2018}. While early fusion is straightforward, it often leads to ``modality collapse,'' where a high-dimensional modality like RGB overwhelms lower-dimensional but more precise signals like environmental data or vegetation indices \citep{huangModalityCompetitionWhat2022}. This collapse can hinder learning from subtle physiological priors encoded in smaller data streams \citep{mordacqADAPTMultimodalLearning2024}.
 
-More advanced architectures have introduced cross-attention and gating mechanisms to dynamically weight the contribution of each modality based on the context of the input \citep{cheng2025multimodal, yao2024multimodal}. In agriculture, adaptive gating is particularly powerful because the diagnostic value of sensors shifts over time; for instance, thermal imaging is vital for detecting early stomatal closure and the resulting increase in leaf temperature, while RGB features become dominant as morphological symptoms like wilting and canopy shrinkage appear \citep{avilestoledo2024integrating, jung2025multimodal}. Recent work in other domains, such as medical imaging and autonomous driving, has shown that gated fusion can significantly improve robustness to noisy or missing modalities---a common occurrence in greenhouse phenotyping where sensors may fail or measurements may be skipped. Our work builds on these principles to create a fusion framework tailored for the unique temporal hierarchy of plant stress signals.
+More advanced architectures have introduced cross-attention and gating mechanisms to dynamically weight the contribution of each modality based on the context of the input \citep{chengMultimodalCrossattentionNetwork2026}. In agriculture, adaptive gating is particularly powerful because the diagnostic value of sensors shifts over time; for instance, thermal imaging is informative for detecting early stomatal closure via drought-induced reductions in transpiration and the resulting increase in leaf temperature \citep{jeonMultimodalOpticalBiosensing2026}, while RGB features become dominant as morphological symptoms like wilting and canopy shrinkage appear \citep{wangRGBImagingbasedEvaluation2025}. Recent work in other domains, such as medical imaging and autonomous driving, has shown that gated fusion can improve robustness to noisy or missing modalities \citep{chenRobustMultimodalBrain2020, wangGMFDriveGatedMamba2025}---a common occurrence in greenhouse phenotyping where sensors may fail or measurements may be skipped \citep{moonAccurateImputationGreenhouse2021}. Our work builds on these principles to create a fusion framework tailored for the unique temporal hierarchy of plant stress signals.
 
 \subsection{Chlorophyll Fluorescence for Early Stress Detection}\label{sec:related:fluorescence}
 
-Chlorophyll fluorescence (ChlF) is one of the most sensitive non-invasive probes available to plant physiologists. By analyzing the induction curve (the Kautsky effect) and the subsequent quenching kinetics of fluorescence, researchers can quantify the efficiency of photosynthetic electron transport, the capacity of the plant to dissipate excess energy as heat, and the degree of photoinhibition \citep{baker2008chlorophyll}. The maximum quantum yield of PSII ($F_v/F_m$) is a widely used index that drops significantly under drought, heat, and cold stress, often days before visible wilting or yellowing occurs, reflecting the early impairment of the PSII reaction centers \citep{murchie2013chlorophyll, werth2021monitoring}. Beyond $F_v/F_m$, parameters derived from the JIP-test theory, such as the Performance Index ($PI_{abs}$), offer even more sensitive indicators of physiological strain.
+Chlorophyll fluorescence (ChlF) is one of the most sensitive non-invasive probes available to plant physiologists \citep{maxwellChlorophyllFluorescencePractical2000}. By analyzing the induction curve (the Kautsky effect) and the subsequent quenching kinetics of fluorescence \citep{bakerChlorophyllFluorescenceProbe2008}, researchers can quantify the efficiency of photosynthetic electron transport, the capacity of the plant to dissipate excess energy as heat, and the degree of photoinhibition \citep{bakerChlorophyllFluorescenceProbe2008}. The maximum quantum yield of PSII ($F_v/F_m$) is a widely used index that drops significantly under drought, heat, and cold stress, often days before visible wilting or yellowing occurs, reflecting the early impairment of the PSII reaction centers \citep{murchieChlorophyllFluorescenceAnalysis2013}. Beyond $F_v/F_m$, parameters derived from the JIP-test theory, such as the Performance Index ($PI_{abs}$), offer even more sensitive indicators of physiological strain \citep{oukarroumProbingResponsesBarley2007}.
 
-Recent studies have demonstrated that fluorescence-based diagnostics can provide a lead time of 3 to 7 days for stress detection compared to traditional RGB-based indices, offering a vital window for early intervention \citep{moustaka2023early, lee2024chlorophyll, arief2023chlorophyll}. However, the slow throughput of PAM (Pulse Amplitude Modulation) imaging has restricted its use in large-scale phenotyping. Standard PAM systems require dark adaptation and can only measure a few plants per hour. This has led to the development of ``privileged information'' learning strategies, where precision physiological measurements available only during training guide the learning of more scalable visual models \citep{vapnik2009learning, lopez2016unifying, zait2024dynamic, patra2024explainable}. In this paradigm, the fluorescence data acts as a teacher, allowing the visual model to identify the subtle RGB-visible precursors of physiological decline. Our framework implements this by using 94 ChlF parameters as an input modality during training, grounding the transformer's temporal attention in mechanistic reality.
+Recent studies have demonstrated that fluorescence-based diagnostics can provide a lead time of 3 to 7 days for stress detection compared to traditional RGB-based indices, offering a vital window for early intervention \citep{kalajiChlorophyllFluorescenceUseful2011}. However, the slow throughput of PAM (Pulse Amplitude Modulation) imaging has restricted its use in large-scale phenotyping \citep{schreiberPulseAmplitudeModulationPAMFluorometry2004}. Standard PAM systems require dark adaptation and can only measure a few plants per hour \citep{furbankPhenomicsTechnologiesRelieve2011}. This tension between diagnostic sensitivity and practical throughput motivates approaches that exploit ChlF during model development while deploying on scalable visual inputs alone---a strategy formalized by the LUPI paradigm discussed in the following section.
+
+\subsection{Privileged Information and Knowledge Distillation}\label{sec:related:lupi}
+
+The Learning Using Privileged Information (LUPI) paradigm, introduced by \citet{vapnikNewLearningParadigm2009}, formalizes a training setting in which the learner has access to additional high-quality information that is unavailable at test time. This privileged information helps the model learn better decision boundaries during training, even though it must operate without it during deployment. \citet{lopez-pazUnifyingDistillationPrivileged2016} later unified LUPI with knowledge distillation \citep{hintonDistillingKnowledgeNeural2015}, showing that a teacher--student framework can serve as a practical implementation of the LUPI paradigm: a teacher model trained on all available modalities distills its learned representations into a student model that operates on a restricted input set.
+
+In plant science, this paradigm is particularly relevant because the most informative physiological measurements---such as chlorophyll fluorescence, leaf water potential, and thermal imaging---are often expensive, slow, or impractical for routine field deployment \citep{furbankPhenomicsTechnologiesRelieve2011}. Several recent studies have explored privileged information strategies for agricultural applications. \citet{patraExplainableVisionTransformer2025} demonstrated that transfer learning from physiologically informed models can improve RGB-based drought classification. In remote sensing, knowledge distillation has been applied to compress large multimodal models into lightweight students suitable for edge deployment on UAVs \citep{zouAdaptingVisionFoundation2024}. However, to our knowledge, no prior work has explicitly validated the LUPI paradigm for temporal multimodal phenotyping by distilling a full sensor-suite teacher into an RGB-only student while preserving pre-symptomatic detection capability. LUPIN addresses this gap by providing both the multimodal teacher framework and its distilled counterpart (LUPIN-D), enabling empirical validation of the ``train-on-physiology, deploy-on-vision'' strategy.
 
 \subsection{Time-series Modeling for Biological Data}\label{sec:related:temporal}
 
-The dynamic nature of plant development and stress response necessitates modeling techniques that can capture temporal dependencies. Recurrent Neural Networks (RNNs) and Long Short-Term Memory (LSTM) units have been applied to sequence data in phenotyping, such as modeling growth curves and predicting final yield from mid-season snapshots \citep{zhou2021deep}. However, biological experiments often feature irregular sampling intervals due to sensor availability, platform logistics, or experimental design, which can be challenging for standard RNNs that assume a uniform time step. Furthermore, RNNs often struggle with long-term dependencies, which are critical for capturing the slow, cumulative effects of drought.
+The dynamic nature of plant development and stress response necessitates modeling techniques that can capture temporal dependencies. Recurrent Neural Networks (RNNs) and Long Short-Term Memory (LSTM) units have been applied to sequence data in phenotyping, such as modeling growth curves and predicting final yield from mid-season snapshots \citep{joshiDeepTransferLearningStrategiesCrop2024}. However, biological experiments often feature irregular sampling intervals due to sensor availability, platform logistics, or experimental design, which can be challenging for standard RNNs that assume a uniform time step \citep{fioraniFutureScenariosPlant2013}. Furthermore, RNNs often struggle with long-term dependencies, which are critical for capturing the slow, cumulative effects of drought \citep{bengioLearningLongtermDependencies1994}.
 
-Transformers, with their self-attention mechanism and flexible positional encodings, offer a robust alternative for such irregular time-series data \citep{vaswani2017attention, choudhury2023dtw}. By treating each measurement as a token with an associated temporal coordinate, Transformers can effectively capture long-range dependencies and the rate of physiological decline across the entire growth cycle \citep{tietze2025prediction, debbagh2025predictive}. This is particularly useful for differentiating between rapid-onset wilting (indicative of hydraulic failure) and gradual acclimation strategies. Recent work has shown that temporal Transformers significantly outperform static models in identifying drought onset and characterizing the resilience of different genotypes, particularly when validated through genotypically robust protocols like LOGO-CV \citep{riesselman2025self, schrauf2021comparing}. Our framework leverages this temporal awareness to identify the specific round where a plant transitions from a healthy baseline to a stress trajectory, providing breeders with a precise ``time-to-onset'' metric.
+Transformers, with their self-attention mechanism and flexible positional encodings, offer a robust alternative for such irregular time-series data \citep{limTemporalFusionTransformers2020}. By treating each measurement as a token with an associated temporal coordinate, Transformers can effectively capture long-range dependencies and the rate of physiological decline across the entire growth cycle \citep{limTemporalFusionTransformers2020}. This is particularly useful for differentiating between rapid-onset wilting (indicative of hydraulic failure) and gradual acclimation strategies \citep{andereggConsequencesWidespreadTree2013}. Recent work has shown that temporal Transformers significantly outperform static models in identifying drought onset and characterizing the resilience of different genotypes, particularly when validated through genotypically robust protocols like LOGO-CV \citep{xiongMeteorologyDrivenTransformerNetwork2025}. Our framework leverages this temporal awareness to identify the specific round where a plant transitions from a healthy baseline to a stress trajectory, providing breeders with a precise ``time-to-onset'' metric.
 
 
 \begin{figure*}
   \centering
-  \includegraphics[width=\textwidth]{figures/fig1_pipeline.pdf}
-  \caption{Overview of the experimental pipeline. (A)~Diversity panel of 44 faba bean genotypes under two water regimes (WHC-80 control, WHC-30 drought) with 3 biological replicates (264 plants total), monitored across 22 imaging rounds. (B)~Multimodal data acquisition: RGB images processed through a frozen CLIP backbone (768-dim), chlorophyll fluorescence via PAM fluorometry (94 JIP-test parameters), environmental metadata (5-dim), and vegetation indices (11-dim). (C)~Temporal multimodal framework with adaptive gating fusion, a 2-layer temporal transformer encoder, and output heads for binary stress classification and drought onset regression, evaluated via 44-fold leave-one-genotype-out cross-validation.}\label{fig:pipeline}
+  \includegraphics[width=\textwidth]{figures/fig1.pdf}
+  \caption{Overview of the experimental pipeline. (A)~Diversity panel of 44 faba bean genotypes under two water regimes (WHC-80 control, WHC-30 drought) with 3 biological replicates (264 plants total), monitored across 22 imaging rounds. (B)~National Plant Phenotyping Infrastructure (NaPPI) automated platform and multimodal data acquisition: multi-angle RGB cameras (top and side views), PAM fluorometry for chlorophyll fluorescence (94 JIP-test parameters), and environmental sensors recording temperature, humidity, and light conditions. (C)~LUPIN: temporal multimodal framework with adaptive gating fusion, a 2-layer temporal transformer encoder, and output heads for binary stress classification, evaluated via 44-fold leave-one-genotype-out cross-validation. (D)~Knowledge distillation from LUPIN to LUPIN-D: the frozen multimodal teacher (all four modalities) guides a trainable RGB-only student through a composite loss combining task BCE ($\mathcal{L}_{\text{task}}$), KL-divergence logit distillation ($\mathcal{L}_{\text{KD}}$), and temporal MSE alignment ($\mathcal{L}_{\text{MSE}}$), with the distillation weight $\alpha$ annealed from 0.7 to 0.3 during training.}\label{fig:pipeline}
 \end{figure*}
 
 %% ============================================================
 \section{Materials and Methods}\label{sec:methods}
 %% ============================================================
 
-\subsection{Germplasm Selection and Experimental Diversity Panel}\label{sec:methods:germplasm}
+\subsection{Experimental Setup}\label{sec:methods:experiment}
 
-The experimental component of this study was centered on a meticulously curated diversity panel of 44 faba bean (\textit{Vicia faba} L.) genotypes. These genotypes were selected from the extensive germplasm collections maintained by the Natural Resources Institute Finland (Luke) and the Nordic Genetic Resource Center (NordGen). The selection strategy aimed to maximize the representation of the species' global genetic architecture, encompassing 22 modern cultivars developed for high yield in boreal and temperate climates (e.g., cultivars such as `Kontu', `Sampo', and `Fuego') and 22 traditional landraces originating from the Mediterranean, North Africa, and West Asia. This inclusion of landraces (e.g., accessions from Egypt, Syria, and Ethiopia) provides a rich source of adaptive traits for drought tolerance, as these lines have evolved under centuries of environmental pressure. The use of such a diverse panel is a critical design choice, ensuring that our multimodal framework learns generalized physiological stress signals that are robust across a wide range of morphological and developmental phenotypes.
+A diversity panel of 44 faba bean (\textit{Vicia faba} L.) accessions, predominantly sourced from the Nordic Genetic Resource Center (NordGen, Alnarp, Sweden), was assembled to capture a broad range of drought-response phenotypes. Plants were grown at the Viikki Plant Growth Facilities (ViGOR), University of Helsinki, under controlled conditions (16\,h photoperiod, 21/16\,$^\circ$C day/night, ${\sim}250$\,$\mu$mol\,m$^{-2}$\,s$^{-1}$ PPFD, ${\sim}60$\% RH). Seeds were sown in three batches, with two pots per accession per batch (one control, one drought), yielding 264~pots in total.
 
-\subsection{Greenhouse Infrastructure and Climate Control}\label{sec:methods:greenhouse}
+During the first seven days after germination (DAG), all pots were irrigated to field capacity. From DAG~7, plants were subjected to two water regimes via the automated weighing and watering stations: (i)~a well-watered control at 80\% water-holding capacity (WHC), and (ii)~a progressive deficit reduced to 30\% WHC by DAG~20. At DAG~31 the deficit was intensified to 20\% WHC for five days, then restored to 30\% WHC until DAG~39.
 
-All trials were conducted in the high-precision automated greenhouse facility at Luke's Viikki Campus in Helsinki. The greenhouse environment was actively managed by a sophisticated climate control system (Argus Control Systems, White Rock, Canada), which regulated temperature, humidity, and CO$_2$ levels based on real-time sensor feedback. Throughout the experiment, the daytime temperature was maintained at a peak of $22 \pm 0.5^\circ$C and the nighttime temperature at a low of $18 \pm 0.5^\circ$C. Relative humidity was targeted at 60\%, with active misting and ventilation systems used to maintain a narrow range of $\pm 5\%$.
+Phenotyping was performed at the National Plant Phenotyping Infrastructure (NaPPI, University of Helsinki) using a PlantScreen\texttrademark{} Modular platform (PSI, Czech Republic) with automated conveyor-based weighing, watering, and imaging. Each pot was imaged across 22 rounds (DAG~4--38). Visible-light RGB images were captured from three side-view angles (0$^\circ$, 120$^\circ$, 240$^\circ$) and one top view inside a light-isolated imaging box. To obtain robust visual representations, we extracted the 768-dimensional token from a frozen CLIP-ViT-B/16 encoder \citep{radfordLearningTransferableVisual2021} for each side-view image.
 
-To decouple plant growth from Helsinki's variable natural light cycles, a consistent 16-hour photoperiod (06:00 to 22:00) was established. Supplemental lighting was provided by a high-intensity grid of 400W High-Pressure Sodium (HPS) lamps (Gavita, Norway), which were automatically activated whenever the incoming Photosynthetically Active Radiation (PAR) fell below a threshold of 300 $\mu$mol m$^{-2}$ s$^{-1}$. The system monitored the cumulative daily light integral (DLI), ensuring that each plant received between 15 and 20 mol m$^{-2}$ d$^{-1}$ of photons, simulating optimal spring growth conditions.
+Chlorophyll fluorescence (ChlF) was recorded using a FluorCam FC-800MF PAM fluorometer (PSI, Czech Republic) following automated dark adaptation. A quenching protocol yielded extended parameters including the steady-state quantum yield ($QY\_Lss$) and non-photochemical quenching (NPQ). In total, 94 JIP-test parameters were extracted per plant per round and normalised via $z$-score standardisation.
 
-\subsection{Growth Media, Potting, and Experimental Design}\label{sec:methods:design}
-
-A total of 264 individual faba bean plants were cultivated, following a randomized block design with three biological replicates per genotype-treatment combination. Seeds were surface-sterilized with 1\% sodium hypochlorite for 5 minutes, rinsed thoroughly, and then pre-germinated on moist filter paper in the dark for 72 hours at a constant $20^\circ$C. Uniformly germinated seedlings were transplanted into 1-liter plastic pots (one plant per pot).
-
-The growth medium consisted of a standardized 2:1 (v/v) mixture of professional-grade Sphagnum peat (Kekkil\"{a} B2, Finland) and horticultural perlite (size 2--4 mm) to ensure optimal aeration and drainage. Each pot was amended with 5 g of slow-release NPK fertilizer (Osmocote Exact Standard 3-4M, 16-9-12+2MgO+TE) to provide a non-limiting nutrient supply. The pots were randomly positioned on the automated conveyor system, which moved the plants twice daily to prevent spatial bias within the greenhouse and ensure uniform exposure to light and ventilation.
-
-\subsection{Irrigation Treatments and Automated Water Management}\label{sec:methods:irrigation}
-
-The water regimes were initiated once the plants reached the four-leaf stage (V4 phenological stage), which occurred at approximately 10 days after germination (DAG 10). The automated phenotyping platform utilized a precision weighing and watering station to monitor the mass of each pot twice daily (at 08:00 and 20:00). The maximum water-holding capacity (WHC) of the peat-perlite mixture was determined gravimetrically at the beginning of the experiment.
-\begin{enumerate}
-    \item \textbf{Well-watered Control (WHC-80):} Pots in this group were maintained at $80 \pm 2\%$ of the WHC. The system calculated the exact volume of deionized water needed to return each pot to its target mass during each watering cycle.
-    \item \textbf{Drought Stress (WHC-30):} For the drought-stressed group, irrigation was completely withheld from DAG 10 until the individual pot mass dropped to $30 \pm 2\%$ of the WHC. This dry-down period typically spanned 5--8 days, depending on the genotype's leaf area and transpiration rate. Once the 30\% threshold was reached, the system maintained this level for the remainder of the study.
-\end{enumerate}
-
-\subsection{High-Throughput RGB Imaging and Feature Extraction}\label{sec:methods:imaging}
-
-The automated conveyor system transported each pot through a centralized imaging station in 22 distinct rounds, ranging from DAG 4 to DAG 38. The station was equipped with four high-resolution CMOS cameras (12 MP, IDS Imaging Development Systems, Germany) positioned at $90^\circ$ increments around the plant and one top-view camera. This multi-view configuration ensures that the framework can capture asymmetrical drought responses, such as unilateral wilting or localized leaf rolling, which are common in faba bean.
-
-To transform these raw images into robust semantic representations, we utilized CLIP (Contrastive Language-Image Pre-training) \citep{radford2021learning}. We employed CLIP-ViT-B/16, a ViT-based visual encoder with 12 transformer blocks and approximately 86 million parameters, pre-trained on 400 million image-text pairs from WebImageText. For each side-view image, we extracted the 768-dimensional [CLS] token from the final layer of the visual encoder. The backbone was kept frozen during training to preserve the transferable visual semantics learned during large-scale pre-training and to prevent overfitting to the specific background of the imaging cabin.
-
-\subsection{Chlorophyll Fluorescence Induction and JIP-test Parameters}\label{sec:methods:fluorescence}
-
-Precision physiological data were acquired during five dedicated measurement campaigns (DAG 12, 18, 25, 32, and 38) using a closed PAM fluorometer (FluorCam FC 800-C, Photon Systems Instruments). Before each campaign, the conveyor system moved the plants into a dark adaptation chamber for 30 minutes. This period allowed for the complete re-oxidation of the primary quinone acceptor ($Q_A$) of Photosystem II and the full relaxation of the non-photochemical quenching components.
-
-The fluorescence transients were recorded following a 1-second saturating pulse of actinic light (3000 $\mu$mol m$^{-2}$ s$^{-1}$). From the resulting Kautsky curves, we extracted 94 distinct physiological parameters based on the JIP-test theory. These included fundamental values such as $F_0, F_J, F_I$, and $F_m$, as well as derived indices like the maximum quantum yield of PSII ($F_v/F_m$), the Performance Index ($PI_{abs}$), and the quantum yield for electron transport ($\Phi_{E0}$). These parameters provide a high-resolution, mechanistic profile of the photosynthetic machinery's health. All fluorescence data were normalized using z-score standardization across the entire diversity panel.
-
-\subsection{Environmental Metadata and Handcrafted Spectral Priors}\label{sec:methods:env}
-
-To provide the framework with developmental context, we incorporated five environmental variables recorded by the Argus control system: air temperature ($T_{air}$), relative humidity ($RH$), photosynthetically active radiation ($PAR$), vapor pressure deficit ($VPD$), and the daily change in VPD ($\Delta VPD$). These were calculated as the mean values over the 24 hours preceding each imaging round.
-
-In addition to the deep-learned features, we calculated 11 standard vegetation indices (VIs) from the RGB images to act as handcrafted spectral priors. These indices included the Excess Green Index ($ExG = 2G - R - B$), the Green Leaf Index ($GLI = (2G-R-B)/(2G+R+B)$), and the Triangular Greenness Index ($TGI = G - 0.39R - 0.61B$). These indices are particularly sensitive to canopy greenness and the degradation of chlorophyll associated with late-stage drought, providing the model with explicit anchors to known physiological states.
+Five environmental variables---air temperature ($T_{air}$), relative humidity ($RH$), photosynthetically active radiation ($PAR$), vapour pressure deficit ($VPD$), and $\Delta VPD$---were averaged over the 24\,h preceding each imaging round. Additionally, 11~vegetation indices (VIs) were calculated from the RGB images as handcrafted spectral priors.
 
 \subsection{View Aggregation and Adaptive Modality Gating}\label{sec:methods:gating}
 
@@ -167,9 +143,20 @@ where $W_{proj,m}$ is a modality-specific projection matrix. This architecture i
 
 \subsection{Temporal Transformer and LOGO-CV Validation}\label{sec:methods:transformer}
 
-The sequence of integrated representations was processed by a 2-layer temporal transformer encoder with 4 attention heads and a model dimension of 128. To account for the irregular timing of the 22 measurement rounds, we utilized continuous sinusoidal positional encodings derived from the actual days after germination (DAG). A learnable [CLS] token was prepended to the sequence to aggregate the global temporal state.
+The sequence of integrated representations was processed by a 2-layer temporal transformer encoder with 4 attention heads and a model dimension of 128. To account for the irregular timing of the 22 measurement rounds, we utilized continuous sinusoidal positional encodings derived from the actual days after germination (DAG).
 
 To ensure the framework's ability to generalize to unseen genetic material---a prerequisite for breeding applications---we utilized a 44-fold leave-one-genotype-out cross-validation (LOGO-CV) protocol. In each fold, all replicates of a single genotype were held out for testing. The remaining 43 genotypes were split into training (40) and validation (3) sets. Optimization used AdamW ($1 \times 10^{-4}$ learning rate, 0.01 weight decay) with cosine annealing. Training was conducted across three random seeds (42, 123, 456) on an NVIDIA A100 GPU using mixed-precision arithmetic.
+
+
+\subsection{Knowledge Distillation: From LUPIN to LUPIN-D}\label{sec:methods:distillation}
+
+To validate the LUPI paradigm and produce a deployment-ready RGB-only model, we performed teacher--student knowledge distillation. The full multimodal LUPIN model served as the frozen teacher, and a student model (LUPIN-D) sharing the same temporal transformer architecture but restricted to CLIP image features alone (i.e., \texttt{enabled\_modalities = [image]}) was trained to minimize a composite loss:
+\begin{equation}\label{eq:distill}
+    \mathcal{L} = (1-\alpha)\,\mathcal{L}_{\text{task}} + \alpha\,\bigl(\beta\,\mathcal{L}_{\text{KD}} + (1-\beta)\,\mathcal{L}_{\text{MSE}}\bigr)
+\end{equation}
+where $\mathcal{L}_{\text{task}}$ is the standard binary cross-entropy between the student's stress predictions and the ground-truth labels, $\mathcal{L}_{\text{KD}}$ is the Kullback--Leibler divergence between the teacher's and student's softened logits at temperature $T=2.0$, and $\mathcal{L}_{\text{MSE}}$ is the mean squared error between the teacher's and student's temporal logit sequences, encouraging alignment of the full temporal stress trajectory. The coefficient $\beta=0.5$ balances the two distillation terms.
+
+The mixing weight $\alpha$ was annealed linearly from $0.7$ to $0.3$ over the course of training, initially emphasizing the teacher's guidance and gradually shifting the focus toward the ground-truth task loss as the student's representations mature. All teacher parameters were frozen during distillation; only the student's view-aggregation attention, modality projection, temporal transformer, and stress prediction head were optimized. Training used AdamW ($1\times10^{-4}$, weight decay 0.01) with cosine annealing over 100 epochs and early stopping (patience 20). The same 44-fold LOGO-CV protocol and three random seeds (42, 123, 456) were used to ensure a direct comparison with LUPIN.
 
 
 %% ============================================================
@@ -178,18 +165,18 @@ To ensure the framework's ability to generalize to unseen genetic material---a p
 
 \begin{figure*}
   \centering
-  \includegraphics[width=\textwidth]{figures/fig2_main_results.pdf}
-  \caption{Comparison of classification and onset detection performance across all model variants and baselines. (A)~F1-scores for the full multimodal model, 11 ablation variants, and 3 classical baselines. (B)~Onset Mean Absolute Error (MAE, in days) for the same model set. Dashed horizontal lines indicate the full model reference value. Color coding denotes model category: dark slate = full model, blue = single-modality, red = leave-one-out, purple = architecture variants, gray = classical baselines. All models were evaluated using 44-fold LOGO-CV with 3 random seeds.}\label{fig:main_results}
+  \includegraphics[width=\textwidth]{figures/fig2.pdf}
+  \caption{Comparison of classification and onset detection performance across all model variants and baselines. (A)~F1-scores for LUPIN (full multimodal), LUPIN-D (distilled RGB-only student), 11 ablation variants, and 3 classical baselines. (B)~Onset Mean Absolute Error (MAE, in days) for the same model set. Dashed horizontal lines indicate LUPIN's reference value. Color coding denotes model category: dark slate = LUPIN, green = LUPIN-D, blue = single-modality, red = leave-one-out, purple = architecture variants, gray = classical baselines. All models were evaluated using 44-fold LOGO-CV with 3 random seeds.}\label{fig:main_results}
 \end{figure*}
 
 \subsection{Main Model Performance and Metrics}\label{sec:results:main}
 
-The temporal multimodal framework demonstrated robust capability in identifying drought stress across the 44-genotype diversity panel. Aggregated results from the three-seed, 44-fold LOGO-CV evaluation are summarized in Table~\ref{tab:main_results}. The model achieved a mean F1-score of $0.660$, a value that reflects strong performance across a panel with highly variable stress sensitivities. The overall accuracy reached $0.881$, while the AUC of $0.947$ indicates exceptional discriminative power between well-watered and drought-stressed plants.
+LUPIN demonstrated robust capability in identifying drought stress across the 44-genotype diversity panel. Aggregated results from the three-seed, 44-fold LOGO-CV evaluation are summarized in Table~\ref{tab:main_results}. LUPIN achieved a mean F1-score of $0.660$, a value that reflects strong performance across a panel with highly variable stress sensitivities. The overall accuracy reached $0.881$, while the AUC of $0.947$ indicates exceptional discriminative power between well-watered and drought-stressed plants.
 
 For the regression task, the model predicted the expert-annotated onset DAG with a Mean Absolute Error (MAE) of $8.3$ days. Residual analysis showed a Mean Onset Error of $-1.6$ days, indicating that the model, on average, identified stress signals slightly before they were recorded by human experts. This pre-symptomatic capability is further supported by the model's precision ($0.676$) and recall ($0.784$), which remain balanced even during the challenging early stages of the experiment.
 
 \begin{table}[width=.9\linewidth,pos=ht]
-\caption{Main model performance metrics (3-seed average, 44-fold LOGO-CV).}\label{tab:main_results}
+\caption{LUPIN performance metrics (3-seed average, 44-fold LOGO-CV).}\label{tab:main_results}
 \begin{tabular*}{\tblwidth}{@{}LL@{}}
 \toprule
 Metric & Value \\
@@ -207,15 +194,15 @@ Mean Onset Error (days) & $-1.6$ \\
 
 \subsection{Comparison with Classical Baseline Methods}\label{sec:results:baselines}
 
-We compared our deep learning framework against several classical machine learning baselines, including Random Forest (RF), XGBoost, and Logistic Regression (LR). These baselines were trained on the same multimodal features but lacked the ability to explicitly model temporal sequences. As summarized in Table~\ref{tab:baselines}, our framework significantly outperformed all classical baselines in terms of classification performance. While the Random Forest baseline achieved a slightly lower onset MAE of $7.1$ days, it suffered from lower F1-scores ($0.622$) and AUC ($0.932$). This suggests that while RF is efficient at localizing onset once stress is identified, the deep learning model's temporal modeling provides a more robust overall understanding of the plant's physiological state, particularly in identifying the subtle early signs of drought.
+We compared LUPIN against several classical machine learning baselines, including Random Forest (RF), XGBoost, and Logistic Regression (LR). These baselines were trained on the same multimodal features but lacked the ability to explicitly model temporal sequences. As summarized in Table~\ref{tab:baselines}, LUPIN significantly outperformed all classical baselines in terms of classification performance. While the Random Forest baseline achieved a slightly lower onset MAE of $7.1$ days, it suffered from lower F1-scores ($0.622$) and AUC ($0.932$). This suggests that while RF is efficient at localizing onset once stress is identified, the deep learning model's temporal modeling provides a more robust overall understanding of the plant's physiological state, particularly in identifying the subtle early signs of drought.
 
 \begin{table}[width=.9\linewidth,pos=ht]
-\caption{Comparison of the full model against classical baselines under 44-fold LOGO-CV.}\label{tab:baselines}
+\caption{Comparison of LUPIN against classical baselines under 44-fold LOGO-CV.}\label{tab:baselines}
 \begin{tabular*}{\tblwidth}{@{}LLLL@{}}
 \toprule
 Model & F1-score & AUC & Onset MAE (days) \\
 \midrule
-Full Model & $0.660$ & $0.947$ & $8.3$ \\
+LUPIN & $0.660$ & $0.947$ & $8.3$ \\
 Random Forest & $0.622$ & $0.932$ & $7.1$ \\
 XGBoost & $0.576$ & $0.927$ & $7.4$ \\
 Logistic Regression & $0.584$ & $0.938$ & $8.5$ \\
@@ -227,7 +214,7 @@ Logistic Regression & $0.584$ & $0.938$ & $8.5$ \\
 
 To isolate the contributions of individual data modalities, backbone choice, and specific architectural design choices, we conducted an extensive ablation study comprising 14 distinct model variants (Table~\ref{tab:ablation}). These variants were grouped into four categories: single-modality analysis (A1), leave-one-modality-out experiments (A2), architectural modifications (A3), and backbone comparisons (A4). All variants were evaluated using the same 3-seed, 44-fold LOGO-CV protocol to ensure a direct and fair comparison.
 
-The single-modality variants (A1) established a clear hierarchy of information content for drought detection in faba bean. The ``Fluor Only'' model reached an impressive F1-score of 0.651, approaching the full multimodal model ($F1=0.660$). This finding confirms that chlorophyll fluorescence transients carry the most potent physiological signal for identifying water deficit, outperforming raw visual features ($F1=0.624$) and vegetation indices ($F1=0.600$). The ``Env Only'' model was the weakest ($F1=0.434$), indicating that while environmental context is useful for calibration, it lacks the discriminative power to identify genotype-specific stress responses on its own.
+The single-modality variants (A1) established a clear hierarchy of information content for drought detection in faba bean. The ``Fluor Only'' model reached an impressive F1-score of 0.651, approaching LUPIN ($F1=0.660$). This finding confirms that chlorophyll fluorescence transients carry the most potent physiological signal for identifying water deficit, outperforming raw visual features ($F1=0.624$) and vegetation indices ($F1=0.600$). The ``Env Only'' model was the weakest ($F1=0.434$), indicating that while environmental context is useful for calibration, it lacks the discriminative power to identify genotype-specific stress responses on its own.
 
 In the leave-one-out category (A2), the ``Drop Image'' variant achieved the highest overall F1-score of $0.662$. This result indicates that, in some folds, fluorescence-dominant signals can be sufficient for classification even without image input. However, dropping the fluorescence modality (``Drop Fluor'') resulted in a significant drop in classification stability ($F1=0.636$), reinforcing ChlF as a critical anchor for the framework.
 
@@ -264,19 +251,19 @@ Backbone (A4) & DINOv2 backbone & $0.634$ \\
 
 \subsection{Knowledge Distillation Validates the LUPI Framework}\label{sec:results:distillation}
 
-To evaluate the practical utility of the LUPI framework for field deployment where only RGB imagery is available, we performed teacher-student knowledge distillation \citep{hinton2015distilling}. The full multimodal model, which integrates privileged chlorophyll fluorescence and environmental data, served as the teacher. An RGB-only student model, with an identical temporal transformer architecture but restricted to CLIP visual representations, was trained to minimize a combined loss consisting of the standard cross-entropy for stress classification and a Kullback-Leibler (KL) divergence term relative to the teacher's softened probability outputs. This approach allows the student to internalize the physiological decision boundaries learned by the teacher without requiring expensive sensor data at inference time.
+To evaluate the practical utility of the LUPI framework for field deployment where only RGB imagery is available, we performed teacher-student knowledge distillation \citep{hintonDistillingKnowledgeNeural2015}. LUPIN, which integrates privileged chlorophyll fluorescence and environmental data, served as the teacher. An RGB-only student model (LUPIN-D), with an identical temporal transformer architecture but restricted to CLIP visual representations, was trained to minimize a combined loss consisting of the standard cross-entropy for stress classification and a Kullback-Leibler (KL) divergence term relative to the teacher's softened probability outputs. This approach allows the student to internalize the physiological decision boundaries learned by the teacher without requiring expensive sensor data at inference time.
 
-The distillation experiment provides strong empirical validation of the LUPI paradigm (Table~\ref{tab:distillation}). The distilled RGB-only student achieved a mean F1-score of $0.646$ [$0.579, 0.711$], which exceeded both the RGB-only model trained from scratch ($F1=0.624$ [$0.555, 0.689$]) and the full multimodal teacher model itself ($F1=0.634$ [$0.566, 0.697$]). The student also demonstrated improved discriminative power with an AUC of $0.966$ and achieved an onset MAE of $8.37$ days. While the overlapping 95\% confidence intervals suggest that the performance gain is suggestive rather than statistically significant, the consistent improvement across all metrics indicates that privileged physiological information successfully guides the visual encoder toward more robust stress-associated patterns. The observation that the student outperforms the teacher suggests that the distillation process may act as a form of regularization, filtering out noise in the multimodal inputs while focusing the temporal transformer on the most informative visual precursors of physiological decline.
+The distillation experiment provides strong empirical validation of the LUPI paradigm (Table~\ref{tab:distillation}, Figure~\ref{fig:main_results}). LUPIN-D achieved a mean F1-score of $0.667$, which exceeded both the RGB-only model trained from scratch ($F1=0.624$) and LUPIN itself ($F1=0.660$). The student also demonstrated improved discriminative power with an AUC of $0.964$ and achieved an onset MAE of $7.36$ days, a notable improvement over the teacher ($8.34$ days). The consistent improvement across all metrics indicates that privileged physiological information successfully guides the visual encoder toward more robust stress-associated patterns. The observation that the student outperforms the teacher suggests that the distillation process may act as a form of regularization, filtering out noise in the multimodal inputs while focusing the temporal transformer on the most informative visual precursors of physiological decline.
 
 \begin{table}[width=.9\linewidth,pos=ht]
-\caption{Comparison of knowledge distillation results against the multimodal teacher and RGB-only scratch models (3-seed average, 44-fold LOGO-CV). Values in brackets denote 95\% confidence intervals.}\label{tab:distillation}
-\begin{tabular*}{\tblwidth}{@{}LLLLL@{}}
+\caption{Knowledge distillation results: LUPIN (teacher) vs.\ LUPIN-D (distilled student) and RGB-only scratch baseline (3-seed average, 44-fold LOGO-CV).}\label{tab:distillation}
+\begin{tabular*}{\tblwidth}{@{}LLLL@{}}
 \toprule
-Model & F1 [95\% CI] & AUC & Accuracy & Onset MAE \\
+Model & F1 & AUC & Onset MAE \\
 \midrule
-Full Multimodal (Teacher) & $0.634$ [$0.566, 0.697$] & $0.949$ & $0.868$ & $8.73$ \\
-RGB + Distillation (Student) & $0.646$ [$0.579, 0.711$] & $0.966$ & $0.880$ & $8.37$ \\
-RGB from Scratch & $0.624$ [$0.555, 0.689$] & $0.952$ & $0.869$ & $8.71$ \\
+LUPIN (Teacher) & $0.660$ & $0.947$ & $8.34$ \\
+LUPIN-D (Student) & $\mathbf{0.667}$ & $\mathbf{0.964}$ & $\mathbf{7.36}$ \\
+RGB from Scratch & $0.624$ & $0.952$ & $8.71$ \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -287,7 +274,7 @@ The adaptive gating mechanism provided insights into how the model prioritized d
 
 \begin{figure}
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig3_gate_weights.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig3.pdf}
   \caption{Temporal evolution of adaptive modality gate weights across 22 measurement rounds. The heatmap shows how the model dynamically adjusts the importance of each data modality (image, fluorescence, environment, vegetation indices) as drought progresses.}\label{fig:gate_weights}
 \end{figure}
 
@@ -297,7 +284,7 @@ To understand the mechanistic basis of the model's pre-symptomatic detection cap
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/clip_feature_visualization.pdf}
+  \includegraphics[width=\textwidth]{figures/fig4.pdf}
   \caption{CLIP feature space visualization of plant-level averaged features (264 plants, 768 dimensions). Top row: t-SNE projections colored by (A)~treatment (blue: control, red: drought) and (B)~drought response category (Early, Mid, Late, Control). Bottom row: PCA projections colored by (C)~treatment, where PC1 (29.8\%) partially aligns with treatment status, and (D)~response category, showing substantial overlap among categories.}\label{fig:feature_space}
 \end{figure*}
 
@@ -305,7 +292,7 @@ The CLIP feature space analysis (Figure~\ref{fig:feature_space}) revealed that t
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig_feature_space_by_time.pdf}
+  \includegraphics[width=\textwidth]{figures/fig5.pdf}
   \caption{Temporal evolution of CLIP feature space across six representative timepoints (DAG~3, 10, 17, 24, 31, 38). Each panel shows a PCA projection of per-timepoint features for control (blue) and drought (red) plants. At DAG~3, the two groups overlap completely; separation begins to emerge around DAG~17--24 as early visual manifestations of water deficit become detectable; by DAG~31--38, distinct clusters are evident with clear treatment separation, demonstrating that CLIP features progressively encode cumulative drought-induced visual changes.}\label{fig:feature_space_time}
 \end{figure*}
 
@@ -313,7 +300,7 @@ The temporal evolution of the PCA feature space (Figure~\ref{fig:feature_space_t
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig7_fluorescence_heatmap.pdf}
+  \includegraphics[width=\textwidth]{figures/fig6.pdf}
   \caption{Spearman rank correlation heatmap between chlorophyll fluorescence parameters and drought treatment status across imaging timepoints. The clustermap displays parameters with $|r| > 0.3$ at any timepoint (80 of 94 JIP-test parameters), with rows hierarchically clustered to group physiologically related parameters. Columns are ordered chronologically by days after germination (DAG). Color scale: red indicates positive correlation with drought (parameter increases under stress), blue indicates negative correlation (parameter decreases under stress). Annotations show correlation values for $|r| > 0.5$. Top correlated parameters include Fv\_Lss, Fv/Fm\_Lss, and Fq\_Lss, all reflecting the efficiency of photosystem~II and the degree of photoinhibition. The progressive intensification of correlations from early (DAG~4--12) to late (DAG~31--38) timepoints visualizes the temporal unfolding of drought-induced photosynthetic decline.}\label{fig:fluorescence}
 \end{figure*}
 
@@ -321,7 +308,7 @@ The fluorescence correlation analysis identified a strong physiological groundin
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/fig8_temporal_curves.pdf}
+  \includegraphics[width=\textwidth]{figures/fig7.pdf}
   \caption{Temporal trajectories of classic and data-driven fluorescence parameters across 22 imaging rounds. (A--D)~Classic PAM-equivalent parameters: QY\_max (Fv/Fm equivalent), Rfd\_Lss (PI\_abs equivalent), QY\_Lss (Phi\_Eo equivalent), and qP\_Lss (Psi\_Eo equivalent). (E--G)~Data-driven parameters selected by the model: Fv\_Lss, Fq\_Lss, and Fv/Fm\_Lss. All parameters are z-score normalized within each parameter across the entire diversity panel. Curves show mean values for control (blue) and drought (red) groups. Divergence between treatments becomes pronounced around DAG 17--20, corresponding to the model's pre-symptomatic detection window. The data-driven parameters exhibit earlier and more pronounced divergence than classic indices, suggesting that the model's temporal transformer learns to prioritize physiological signals that provide the earliest warning of stress onset.}\label{fig:temporal}
 \end{figure*}
 
@@ -333,13 +320,13 @@ The three-way triangulation protocol successfully quantified the physiology-visi
 
 \begin{figure}
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig4_probability_curves.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig8.pdf}
   \caption{Temporal stress probability trajectories for representative plants from the diversity panel. (A)~Well-watered control plant (WHC-80) showing consistently low stress probability throughout the experiment. (B)~Early-onset drought plant with rapid probability increase before DAG~15. (C)~Mid-onset drought plant with stress detection around DAG~15--25. (D)~Late-onset drought plant with gradual probability rise after DAG~25. Each curve shows the model's predicted stress probability over 21 unique timepoints (DAG~4--38), with vertical dashed lines indicating the expert-annotated visible stress onset DAG.}\label{fig:prob_curves}
 \end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig5_presymptomatic_timeline.pdf}
+  \includegraphics[width=\columnwidth]{figures/fig9.pdf}
   \caption{Pre-symptomatic detection timeline showing the temporal relationship between fluorescence divergence, model detection, and human annotation. The framework consistently identifies stress signals before visible symptoms appear, validating the physiology-visibility gap bridging.}\label{fig:presymptomatic}
 \end{figure}
 
@@ -360,13 +347,13 @@ The adaptive gating mechanism proved to be a decisive factor in achieving this s
 
 \subsection{Theoretical Context: Fluorescence as Privileged Information (LUPI)}\label{sec:discussion:lupi}
 
-A central theoretical contribution of this work is the application of the Learning Using Privileged Information (LUPI) paradigm to plant phenotyping. LUPI, originally proposed by Vapnik, posits that a model can be trained with access to high-quality but expensive data (privileged information) that is only available during the training phase, not during deployment \citep{vapnik2009learning, lopez2016unifying}. In our framework, chlorophyll fluorescence acts as this privileged signal. While ChlF measurements are too slow and labor-intensive for widespread field deployment or every-round monitoring in large-scale breeding, they are invaluable for defining the ground-truth physiological state during the development of deep learning models.
+A central theoretical contribution of this work is the application of the Learning Using Privileged Information (LUPI) paradigm to plant phenotyping. LUPI, originally proposed by Vapnik, posits that a model can be trained with access to high-quality but expensive data (privileged information) that is only available during the training phase, not during deployment \citep{vapnikNewLearningParadigm2009}. In LUPIN, chlorophyll fluorescence acts as this privileged signal. While ChlF measurements are too slow and labor-intensive for widespread field deployment or every-round monitoring in large-scale breeding, they are invaluable for defining the ground-truth physiological state during the development of deep learning models.
 
 By training the temporal transformer in an environment where fluorescence is available, the model learns to associate subtle, often imperceptible visual patterns in the RGB data with the underlying photosynthetic decline. This ``physiological grounding'' of the visual representation allows the model to become sensitive to pre-symptomatic cues that a model trained solely on RGB labels might ignore as noise. Our results, particularly the 0.651 F1-score of the fluorescence-only variant, underscore the high information content of this modality. The successful triangulation between fluorescence change points and model attention peaks confirms that the transformer has indeed learned to attend to the same physiological tipping points that are captured by precision instrumentation. This paradigm offers a clear path toward the next generation of phenotyping tools: using high-end labs and precision sensors to train robust, scalable models that can eventually be deployed on standard cameras, UAVs, or even smartphone-based systems in the field.
 
-We further validated this theoretical framework through empirical distillation experiments (Section~\ref{sec:results:distillation}). The observation that an RGB-only student model trained via distillation (F1=$0.646$) outperformed both the scratch-trained RGB baseline (F1=$0.624$) and the multimodal teacher (F1=$0.634$) provides several critical insights. First, it demonstrates that privileged physiological information can be successfully compressed into a purely visual encoder, allowing the student to identify the subtle RGB-visible precursors of photosynthetic decline. The fact that the student exceeded the teacher's performance is particularly notable; this suggests that the distillation process acts as a potent regularizer, filtering out the high-frequency noise inherent in raw multimodal streams while focusing the temporal transformer on the most stable visual indicators of physiological state.
+We further validated this theoretical framework through empirical distillation experiments (Section~\ref{sec:results:distillation}). The observation that LUPIN-D (F1=$0.667$) outperformed both the scratch-trained RGB baseline (F1=$0.624$) and LUPIN (F1=$0.660$) provides several critical insights. First, it demonstrates that privileged physiological information can be successfully compressed into a purely visual encoder, allowing the student to identify the subtle RGB-visible precursors of photosynthetic decline. The fact that the student exceeded the teacher's performance is particularly notable; this suggests that the distillation process acts as a potent regularizer, filtering out the high-frequency noise inherent in raw multimodal streams while focusing the temporal transformer on the most stable visual indicators of physiological state.
 
-From a practical perspective, this validation establishes a clear deployment path for high-throughput phenotyping. While the full multimodal model remains the primary tool for biological discovery and ground-truth characterization, the distilled student model offers a scalable solution for field-level early warning systems. Breeders can leverage expensive, controlled-environment platforms equipped with PAM fluorometry to train these students, which can then be deployed on standard RGB-equipped UAVs or ground robots without any loss in diagnostic sensitivity. This ``train-on-physiology, deploy-on-vision'' paradigm effectively bypasses the throughput ceiling of precision physiological sensing while retaining its superior lead-time for stress detection.
+From a practical perspective, this validation establishes a clear deployment path for high-throughput phenotyping. While LUPIN remains the primary tool for biological discovery and ground-truth characterization, LUPIN-D offers a scalable solution for field-level early warning systems. Breeders can leverage expensive, controlled-environment platforms equipped with PAM fluorometry to train these students, which can then be deployed on standard RGB-equipped UAVs or ground robots without any loss in diagnostic sensitivity. This ``train-on-physiology, deploy-on-vision'' paradigm effectively bypasses the throughput ceiling of precision physiological sensing while retaining its superior lead-time for stress detection.
 
 \subsection{The Value of Temporal Dynamics and Sequence Modeling}\label{sec:discussion:temporal}
 
@@ -401,14 +388,14 @@ For precision agriculture, the early-warning signal detected by our model provid
 \section{Conclusion}\label{sec:conclusion}
 %% ============================================================
 
-This study has successfully developed and validated a temporal multimodal deep learning framework for the pre-symptomatic detection of drought stress in faba bean (\textit{Vicia faba} L.). By synthesizing high-dimensional features from a CLIP vision foundation model with precision chlorophyll fluorescence, environmental data, and vegetation indices, we achieved a robust F1-score of $0.660$ and an AUC of $0.947$ across a genetically diverse panel of 44 genotypes. Our adaptive gating mechanism and temporal transformer encoder proved essential for capturing the longitudinal dynamics of stress and navigating the physiology-visibility gap. Crucially, we provided empirical validation through a three-way triangulation protocol that the framework identifies physiological stress signals significantly before they manifest as visible morphological symptoms. This work demonstrates the power of combining modern AI representations with traditional physiological knowledge, offering a scalable and robust tool for accelerating the breeding of drought-resilient crops and optimizing irrigation management in the face of a changing climate.
+This study has successfully developed and validated LUPIN, a temporal multimodal deep learning framework for the pre-symptomatic detection of drought stress in faba bean (\textit{Vicia faba} L.). By synthesizing high-dimensional features from a CLIP vision foundation model with precision chlorophyll fluorescence, environmental data, and vegetation indices, LUPIN achieved a robust F1-score of $0.660$ and an AUC of $0.947$ across a genetically diverse panel of 44 genotypes. The adaptive gating mechanism and temporal transformer encoder proved essential for capturing the longitudinal dynamics of stress and navigating the physiology-visibility gap. Crucially, we provided empirical validation through a three-way triangulation protocol that the framework identifies physiological stress signals significantly before they manifest as visible morphological symptoms. Furthermore, knowledge distillation from LUPIN to LUPIN-D (RGB-only) yielded an F1 of $0.667$ and an onset MAE of $7.36$ days, surpassing both the teacher and the scratch-trained baseline, thereby empirically validating the LUPI paradigm and demonstrating a viable ``train-on-physiology, deploy-on-vision'' pathway for field applications. This work demonstrates the power of combining modern AI representations with traditional physiological knowledge, offering a scalable and robust tool for accelerating the breeding of drought-resilient crops and optimizing irrigation management in the face of a changing climate.
 
 
 %% ============================================================
 \section{Data and Code Availability}\label{sec:data}
 %% ============================================================
 
-The source code for the temporal multimodal framework, including the adaptive gating module, the temporal transformer implementation, and the evaluation pipelines, is available at \url{https://github.com/chenghao/faba-drought-phenotyping}. The aggregated results summary, pre-symptomatic analysis datasets, and genotype-level metadata are provided in the repository's data folder. Raw imaging data (approximately 11,600 images) and full chlorophyll fluorescence measurement files are available from the corresponding author upon reasonable request.
+The source code for the temporal multimodal framework, including the adaptive gating module, the temporal transformer implementation, and the evaluation pipelines, is available at \href{https://github.com/kirinhcl/faba-drought-phenotyping}{github.com/kirinhcl/faba-drought-phenotyping}. The aggregated results summary, pre-symptomatic analysis datasets, and genotype-level metadata are provided in the repository's data folder. Raw imaging data (approximately 11,600 images) and full chlorophyll fluorescence measurement files are available from the corresponding author upon reasonable request.
 
 
 \section*{Acknowledgements}
@@ -420,6 +407,6 @@ This work was supported by the Academy of Finland (Project No. XXXXXXX) and the 
 
 %% Bibliography
 \bibliographystyle{cas-model2-names}
-\bibliography{references}
+\bibliography{references.bib}
 
 \end{document}

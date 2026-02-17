@@ -1,91 +1,106 @@
-# Temporal Multimodal Deep Learning for Faba Bean Drought Phenotyping
+# LUPIN: Learning from Physiology, Deploying on Vision
 
-Framework leveraging vision foundation model representations and privileged information for pre-symptomatic drought detection.
+A temporal multimodal framework for pre-symptomatic drought phenotyping in faba bean.
 
-## Paper
-[Temporal Multimodal Deep Learning for Faba Bean Drought Phenotyping] — Nature Machine Intelligence (under review)
-DOI: 10.1038/s42256-XXXX-XXXX (placeholder)
+LUPIN (Learning Using Privileged Information Network) bridges the "physiology--visibility gap" by integrating CLIP-based visual representations with chlorophyll fluorescence, environmental metadata, and vegetation indices during training, then distilling this knowledge into an RGB-only student model (LUPIN-D) for field deployment.
 
-## Architecture
-See `paper/figures/fig1_architecture.pdf` for the full model architecture diagram, illustrating the DINOv2 backbone, temporal transformer, and privileged information fusion.
+## Key Results
+
+| Model | F1 | AUC | MAE (days) |
+|-------|-----|------|------------|
+| LUPIN (teacher, 4-modality) | 0.660 | 0.947 | 8.3 |
+| LUPIN-D (student, RGB-only) | **0.667** | **0.964** | **7.4** |
+
+- 44-fold leave-one-genotype-out cross-validation (LOGO-CV), 3 random seeds
+- Pre-symptomatic detection: mean onset error -1.6 days (model detects before visible symptoms)
 
 ## Project Structure
+
 ```
 src/
-  data/       # Dataset, collation, metadata
-  model/      # Encoder, fusion, temporal transformer, heads, student
-  training/   # Trainer, losses, CV
-  analysis/   # Attention, fluorescence, ranking, embeddings
-  baselines/  # Classical ML baselines
-  utils/      # Config system
-configs/      # YAML configs (default, ablation variants, distillation)
-scripts/      # Training, evaluation, feature extraction, analysis, figures
-paper/        # LaTeX manuscript and figures
+  data/         # Dataset, collation, metadata
+  model/        # Encoder, fusion, temporal transformer, heads, student
+  training/     # Trainer, losses, cross-validation
+  analysis/     # Attention, fluorescence, ranking, embeddings
+  baselines/    # Classical ML baselines (RF, SVM, XGBoost)
+  utils/        # Config system
+configs/
+  default.yaml                # Full model config
+  stress.yaml                 # Stress detection config
+  distillation_stress.yaml    # LUPIN -> LUPIN-D distillation
+  ablation/                   # Ablation variants (single-modality, leave-one-out, backbone, architecture)
+scripts/
+  train_stress.py             # Train LUPIN (stress detection)
+  train_distill_stress.py     # Train LUPIN-D (knowledge distillation)
+  evaluate_stress.py          # Evaluation pipeline
+  extract_features.py         # CLIP feature extraction
+  analyze_*.py                # Analysis (attention, fluorescence, presymptomatic, ranking)
+  generate_fig2.py            # Figure 2 generation
+paper/
+  main.tex                    # Manuscript (Elsevier CAS double-column)
+  references.bib              # Bibliography
+  figures/                    # fig1.pdf - fig9.pdf
 ```
 
 ## Installation
+
 ```bash
 pip install -r requirements.txt
 ```
 
-## Quick Start
+## Usage
+
 ### Feature Extraction
+
 ```bash
-python scripts/extract_features.py --backbone dinov2 --image_dir data/images/ --output_dir features/
+python scripts/extract_features.py --backbone clip --image_dir data/images/ --output_dir features/
 ```
 
 ### Training
-Train a single fold:
+
 ```bash
-python scripts/train.py --config configs/default.yaml --fold 0
-```
-Train all folds:
-```bash
-python scripts/train.py --config configs/default.yaml --fold all
+# LUPIN (full multimodal)
+python scripts/train_stress.py --config configs/stress.yaml --fold all
+
+# LUPIN-D (distilled RGB-only student)
+python scripts/train_distill_stress.py --config configs/distillation_stress.yaml --fold all
 ```
 
-### Ablation and Distillation
-Run ablation sweep:
+### Evaluation
+
 ```bash
-bash scripts/slurm/ablation_sweep.sh
-```
-Knowledge distillation (RGB student):
-```bash
-python scripts/train_distill.py --config configs/distillation.yaml --fold 0
+python scripts/evaluate_stress.py --results_dir results/full_model/
 ```
 
-### Evaluation and Analysis
+### Analysis
+
 ```bash
-python scripts/evaluate.py --results_dir results/full_model/
 python scripts/analyze_attention.py
+python scripts/analyze_fluorescence.py
+python scripts/analyze_presymptomatic.py
 python scripts/analyze_ranking.py
 ```
 
-### Generate Figures
-```bash
-python scripts/generate_figures.py --results_dir results/ --output_dir paper/figures/
-```
+## Design
 
-## Key Design Choices
-- DINOv2-B/14 primary backbone (frozen, 768-dim representations)
-- T=22 canonical timeline with per-plant segmentation masks
-- 44-fold leave-one-genotype-out cross-validation
-- Chlorophyll fluorescence as privileged information (LUPI paradigm)
-- Teacher-student distillation for RGB-only field deployment
-
-## CSC Mahti
-SLURM scripts optimized for the CSC Mahti supercomputer are provided in `scripts/slurm/`.
+- **Visual encoder**: CLIP-ViT-B/16 (frozen, 768-dim [CLS] token per side-view image)
+- **Modality fusion**: Adaptive gating mechanism with learned per-timepoint weights
+- **Temporal model**: 2-layer transformer encoder with continuous sinusoidal positional encodings (DAG-based)
+- **Validation**: 44-fold LOGO-CV across 264 plants (44 genotypes x 2 treatments x 3 batches)
+- **Distillation**: Teacher-student KD with alpha-annealing (0.7->0.3), T=2.0, beta=0.5
 
 ## Citation
+
 ```bibtex
-@article{faba_drought_2026,
-  title={Temporal Multimodal Deep Learning for Faba Bean Drought Phenotyping},
-  author={Lastname, Firstname and others},
-  journal={Nature Machine Intelligence},
+@article{lu2026lupin,
+  title={Learning from Physiology, Deploying on Vision: A Temporal Multimodal Framework for Pre-symptomatic Drought Phenotyping in Faba Bean},
+  author={Lu, Chenghao and others},
+  journal={Computers and Electronics in Agriculture},
   year={2026},
   note={Under review}
 }
 ```
 
 ## License
+
 MIT License
